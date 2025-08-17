@@ -1,44 +1,48 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { NovaInformacao } from '../types/api';
-import { ApiService } from '../services/api';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Textarea } from './ui/textarea';
-import { Label } from './ui/label';
-import { Alert, AlertDescription } from './ui/alert';
-import { toast } from 'sonner';
-import { 
-  ArrowLeft, 
-  Send, 
-  Upload, 
-  X, 
-  MapPin, 
-  Phone, 
+import { useState, type ChangeEvent } from "react";
+import { useForm } from "react-hook-form";
+import { NovaInformacao } from "../types/api";
+import { ApiService } from "../services/api";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { Label } from "./ui/label";
+import { Alert, AlertDescription } from "./ui/alert";
+import { toast } from "sonner";
+import {
+  ArrowLeft,
+  Send,
+  Upload,
+  X,
+  MapPin,
+  Phone,
   MessageSquare,
   CheckCircle,
-  AlertCircle
-} from 'lucide-react';
+  AlertCircle,
+} from "lucide-react";
 
 interface FormularioInformacaoProps {
   pessoaId: number;
   pessoaNome: string;
+  ocoId: number;
   onBack: () => void;
   onSuccess: () => void;
 }
 
-interface FormData {
+interface InformacaoFormData {
   informacao: string;
-  localizacao: string;
-  telefone: string;
+  descricao: string; // legenda/descrição do(s) anexo(s)
+  data: string; // yyyy-MM-dd
+  localizacao?: string;
+  telefone?: string;
 }
 
-export function FormularioInformacao({ 
-  pessoaId, 
-  pessoaNome, 
-  onBack, 
-  onSuccess 
+export function FormularioInformacao({
+  pessoaId,
+  pessoaNome,
+  ocoId,
+  onBack,
+  onSuccess,
 }: FormularioInformacaoProps) {
   const [loading, setLoading] = useState(false);
   const [fotos, setFotos] = useState<File[]>([]);
@@ -49,32 +53,41 @@ export function FormularioInformacao({
     handleSubmit,
     formState: { errors },
     watch,
-    setValue
-  } = useForm<FormData>();
+    setValue,
+  } = useForm<InformacaoFormData>({
+    defaultValues: {
+      data: new Date().toISOString().slice(0, 10),
+      descricao: "",
+      localizacao: "",
+      telefone: "",
+    },
+  });
 
   // Máscara para telefone
   const formatPhone = (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
+    const cleaned = value.replace(/\D/g, "");
     const match = cleaned.match(/^(\d{0,2})(\d{0,5})(\d{0,4})$/);
     if (match) {
-      return !match[2] 
-        ? match[1] 
-        : `(${match[1]}) ${match[2]}${match[3] ? `-${match[3]}` : ''}`;
+      return !match[2]
+        ? match[1]
+        : `(${match[1]}) ${match[2]}${match[3] ? `-${match[3]}` : ""}`;
     }
     return value;
   };
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Removido telefone/localizacao da submissão para alinhar com especificação atual
+  const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
     const formatted = formatPhone(e.target.value);
-    setValue('telefone', formatted);
+    setValue("telefone", formatted);
   };
 
   const handleFileSelect = (files: FileList | null) => {
     if (!files) return;
-    
-    const newFiles = Array.from(files).filter(file => {
-      if (file.type.startsWith('image/')) {
-        if (file.size > 5 * 1024 * 1024) { // 5MB
+
+    const newFiles = Array.from(files).filter((file) => {
+      if (file.type.startsWith("image/")) {
+        if (file.size > 5 * 1024 * 1024) {
+          // 5MB
           toast.error(`A imagem ${file.name} é muito grande. Máximo 5MB.`);
           return false;
         }
@@ -86,15 +99,15 @@ export function FormularioInformacao({
     });
 
     if (fotos.length + newFiles.length > 5) {
-      toast.error('Máximo de 5 fotos permitidas.');
+      toast.error("Máximo de 5 fotos permitidas.");
       return;
     }
 
-    setFotos(prev => [...prev, ...newFiles]);
+    setFotos((prev) => [...prev, ...newFiles]);
   };
 
   const removePhoto = (index: number) => {
-    setFotos(prev => prev.filter((_, i) => i !== index));
+    setFotos((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -114,40 +127,40 @@ export function FormularioInformacao({
     handleFileSelect(e.dataTransfer.files);
   };
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: InformacaoFormData) => {
     try {
       setLoading(true);
 
       const informacao: NovaInformacao = {
-        pessoaId,
+        ocoId,
         informacao: data.informacao,
-        localizacao: data.localizacao || undefined,
-        telefone: data.telefone || undefined,
-        fotos: fotos.length > 0 ? fotos : undefined
+        descricao: data.descricao || "",
+        data: data.data,
+        fotos: fotos.length > 0 ? fotos : undefined,
       };
 
       await ApiService.enviarInformacao(informacao);
-      
-      toast.success('Informação enviada com sucesso!', {
-        description: 'Obrigado por contribuir com as investigações.'
+
+      toast.success("Informação enviada com sucesso!", {
+        description: "Obrigado por contribuir com as investigações.",
       });
-      
+
       onSuccess();
     } catch (error) {
-      toast.error('Erro ao enviar informação', {
-        description: 'Tente novamente em alguns minutos.'
+      toast.error("Erro ao enviar informação", {
+        description: "Tente novamente em alguns minutos.",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const watchedInfo = watch('informacao', '');
+  const watchedInfo = watch("informacao", "");
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <Button 
-        variant="ghost" 
+      <Button
+        variant="ghost"
         onClick={onBack}
         className="mb-6 flex items-center gap-2 hover:bg-accent"
       >
@@ -162,7 +175,8 @@ export function FormularioInformacao({
             Enviar Informação
           </CardTitle>
           <p className="text-muted-foreground">
-            Sobre: <span className="font-semibold text-foreground">{pessoaNome}</span>
+            Sobre:{" "}
+            <span className="font-semibold text-foreground">{pessoaNome}</span>
           </p>
         </CardHeader>
 
@@ -170,8 +184,9 @@ export function FormularioInformacao({
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Importante:</strong> Forneça apenas informações verdadeiras e relevantes. 
-              Informações falsas podem prejudicar as investigações e são crime.
+              <strong>Importante:</strong> Forneça apenas informações
+              verdadeiras e relevantes. Informações falsas podem prejudicar as
+              investigações e são crime.
             </AlertDescription>
           </Alert>
 
@@ -186,12 +201,12 @@ export function FormularioInformacao({
                 id="informacao"
                 placeholder="Descreva detalhadamente as informações que você possui sobre esta pessoa. Inclua local, data, hora e circunstâncias em que você a viu..."
                 className="min-h-32 resize-none"
-                {...register('informacao', {
-                  required: 'Este campo é obrigatório',
+                {...register("informacao", {
+                  required: "Este campo é obrigatório",
                   minLength: {
                     value: 20,
-                    message: 'A informação deve ter pelo menos 20 caracteres'
-                  }
+                    message: "A informação deve ter pelo menos 20 caracteres",
+                  },
                 })}
               />
               <div className="flex justify-between items-center">
@@ -215,10 +230,11 @@ export function FormularioInformacao({
               <Input
                 id="localizacao"
                 placeholder="Ex: Rua das Flores, 123 - Centro - Cuiabá/MT"
-                {...register('localizacao')}
+                {...register("localizacao")}
               />
               <p className="text-sm text-muted-foreground">
-                Seja específico com endereços, pontos de referência ou coordenadas
+                Seja específico com endereços, pontos de referência ou
+                coordenadas
               </p>
             </div>
 
@@ -231,7 +247,7 @@ export function FormularioInformacao({
               <Input
                 id="telefone"
                 placeholder="(65) 99999-9999"
-                value={watch('telefone') || ''}
+                value={watch("telefone") || ""}
                 onChange={handlePhoneChange}
                 maxLength={15}
               />
@@ -246,12 +262,12 @@ export function FormularioInformacao({
                 <Upload className="w-4 h-4" />
                 Fotos (opcional) - Máximo 5 fotos
               </Label>
-              
+
               <div
                 className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                  dragActive 
-                    ? 'border-primary bg-primary/5' 
-                    : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+                  dragActive
+                    ? "border-primary bg-primary/5"
+                    : "border-muted-foreground/25 hover:border-muted-foreground/50"
                 }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -261,7 +277,7 @@ export function FormularioInformacao({
                 <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <div className="space-y-2">
                   <p className="text-foreground">
-                    Arraste fotos aqui ou{' '}
+                    Arraste fotos aqui ou{" "}
                     <label className="text-primary cursor-pointer hover:underline">
                       clique para selecionar
                       <input
@@ -303,6 +319,18 @@ export function FormularioInformacao({
                   ))}
                 </div>
               )}
+
+              {/* Descrição dos anexos */}
+              <div className="space-y-2">
+                <Label htmlFor="descricao">
+                  Descrição dos anexos (opcional)
+                </Label>
+                <Input
+                  id="descricao"
+                  placeholder="Ex.: Foto do avistamento na Av. Brasil"
+                  {...register("descricao")}
+                />
+              </div>
             </div>
 
             {/* Botões */}
@@ -338,8 +366,8 @@ export function FormularioInformacao({
           <Alert>
             <CheckCircle className="h-4 w-4" />
             <AlertDescription>
-              Sua informação será analisada pela Polícia Civil e poderá contribuir 
-              significativamente para as investigações.
+              Sua informação será analisada pela Polícia Civil e poderá
+              contribuir significativamente para as investigações.
             </AlertDescription>
           </Alert>
         </CardContent>

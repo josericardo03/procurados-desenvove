@@ -56,9 +56,12 @@ export interface SearchFilters {
 }
 
 export interface NovaInformacao {
-  pessoaId: number;
-  informacao: string;
+  ocoId: number; // ID da ocorrência (obrigatório)
+  informacao: string; // texto da observação (obrigatório)
+  descricao: string; // legenda/descrição do(s) anexo(s) (obrigatório – pode ser vazio se sem anexo?)
+  data: string; // formato yyyy-MM-dd (obrigatório)
+  fotos?: File[]; // arquivos (opcional)
+  // Campos extras opcionais da UI (não enviados na API atual, mas mantidos para futuras evoluções)
   localizacao?: string;
   telefone?: string;
-  fotos?: File[];
 }

@@ -22,7 +22,11 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 interface PessoaDetalhesProps {
   pessoaId: number;
   onBack: () => void;
-  onEnviarInformacao: (pessoaId: number, pessoaNome: string) => void;
+  onEnviarInformacao: (
+    pessoaId: number,
+    pessoaNome: string,
+    ocoId: number
+  ) => void;
 }
 
 export function PessoaDetalhes({
@@ -202,7 +206,13 @@ export function PessoaDetalhes({
 
                 <div className="pt-4 border-t">
                   <Button
-                    onClick={() => onEnviarInformacao(pessoa.id, pessoa.nome)}
+                    onClick={() => {
+                      onEnviarInformacao(
+                        pessoa.id,
+                        pessoa.nome,
+                        pessoa.ultimaOcorrencia.ocoId
+                      );
+                    }}
                     className="w-full flex items-center gap-2"
                     size="lg"
                   >

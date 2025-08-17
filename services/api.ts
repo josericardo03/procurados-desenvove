@@ -274,9 +274,24 @@ export class ApiService {
 
   static async enviarInformacao(informacao: NovaInformacao): Promise<boolean> {
     try {
-      // Aqui você pode trocar por POST real para sua API quando disponível
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      console.log("Informação enviada:", informacao);
+      const form = new FormData();
+      // Query params obrigatórios: informacao, descricao, data (yyyy-MM-dd), ocoId
+      form.append("informacao", informacao.informacao);
+      form.append("descricao", informacao.descricao ?? "");
+      form.append("data", informacao.data);
+      form.append("ocoId", String(informacao.ocoId));
+
+      // Body multipart: files (0..N) usando mesma key
+      if (informacao.fotos && informacao.fotos.length > 0) {
+        informacao.fotos.forEach((f) => form.append("files", f, f.name));
+      }
+
+      const res = await fetch(`${API_BASE_URL}/v1/ocorrencias/informacoes`, {
+        method: "POST",
+        body: form,
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return true;
     } catch (error) {
       console.error("Erro ao enviar informação:", error);
