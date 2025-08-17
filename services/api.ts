@@ -274,22 +274,28 @@ export class ApiService {
 
   static async enviarInformacao(informacao: NovaInformacao): Promise<boolean> {
     try {
-      const form = new FormData();
-      // Query params obrigatórios: informacao, descricao, data (yyyy-MM-dd), ocoId
-      form.append("informacao", informacao.informacao);
-      form.append("descricao", informacao.descricao ?? "");
-      form.append("data", informacao.data);
-      form.append("ocoId", String(informacao.ocoId));
+      // Query params obrigatórios devem ir na URL
+      const query = new URLSearchParams({
+        informacao: informacao.informacao,
+        descricao: informacao.descricao ?? "",
+        data: informacao.data,
+        ocoId: String(informacao.ocoId),
+      });
 
-      // Body multipart: files (0..N) usando mesma key
+      // Body multipart: somente os arquivos (0..N) com a mesma key 'files'
+      // Mesmo sem arquivos, enviar multipart vazio
+      const form = new FormData();
       if (informacao.fotos && informacao.fotos.length > 0) {
         informacao.fotos.forEach((f) => form.append("files", f, f.name));
       }
 
-      const res = await fetch(`${API_BASE_URL}/v1/ocorrencias/informacoes`, {
-        method: "POST",
-        body: form,
-      });
+      const res = await fetch(
+        `${API_BASE_URL}/v1/ocorrencias/informacoes-desaparecido?${query.toString()}`,
+        {
+          method: "POST",
+          body: form,
+        }
+      );
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return true;
