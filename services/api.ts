@@ -173,11 +173,19 @@ export class ApiService {
     size: number = 10,
     filters: SearchFilters = {}
   ): Promise<ApiResponse> {
+    // Mapeia o status da UI para o esperado pela API (ex.: LOCALIZADO | DESAPARECIDO)
+    const statusParam =
+      filters.status && filters.status !== "todos"
+        ? filters.status === "localizado"
+          ? "LOCALIZADO"
+          : "DESAPARECIDO"
+        : undefined;
+
     const query = this.buildQuery({
       pagina: page,
       porPagina: size,
       nome: filters.nome || undefined,
-      // status: filters.status && filters.status !== 'todos' ? filters.status : undefined, // habilite se a API aceitar
+      status: statusParam,
       sexo: filters.sexo && filters.sexo !== "todos" ? filters.sexo : undefined,
     });
     const url = `${API_BASE_URL}/v1/pessoas/aberto/filtro${
@@ -193,20 +201,9 @@ export class ApiService {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as ApiResponse;
 
-      // Filtro de status (caso a API não suporte por query param)
-      let content = data.content;
-      if (filters.status && filters.status !== "todos") {
-        content = content.filter((p) =>
-          filters.status === "desaparecido"
-            ? !p.ultimaOcorrencia.dataLocalizacao
-            : Boolean(p.ultimaOcorrencia.dataLocalizacao)
-        );
-      }
-
-      return {
-        ...data,
-        content,
-      };
+      // A API já trouxe o status filtrado quando 'status' foi enviado
+      // Mantemos esta lógica simples e retornamos o payload da API
+      return data;
     } catch (error) {
       console.warn("Falha ao consultar API, usando mock:", error);
       // Fallback para mock para não quebrar a UI
