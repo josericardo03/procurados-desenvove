@@ -8,7 +8,7 @@ export interface UltimaOcorrencia {
   dataLocalizacao: string | null;
   encontradoVivo: boolean;
   localDesaparecimentoConcat: string;
-  ocorrenciaEntrevDesapDTO: OcorrenciaEntrevDesapDTO;
+  ocorrenciaEntrevDesapDTO: OcorrenciaEntrevDesapDTO | null;
   listaCartaz: any | null;
   ocoId: number;
 }
@@ -51,8 +51,8 @@ export interface ApiResponse {
 
 export interface SearchFilters {
   nome?: string;
-  status?: 'desaparecido' | 'localizado' | 'todos';
-  sexo?: 'MASCULINO' | 'FEMININO' | 'todos';
+  status?: "desaparecido" | "localizado" | "todos";
+  sexo?: "MASCULINO" | "FEMININO" | "todos";
 }
 
 export interface NovaInformacao {

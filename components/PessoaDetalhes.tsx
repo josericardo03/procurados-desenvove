@@ -1,23 +1,23 @@
-import { useState, useEffect } from 'react';
-import { Pessoa } from '../types/api';
-import { ApiService } from '../services/api';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
-import { Button } from './ui/button';
-import { Skeleton } from './ui/skeleton';
-import { Alert, AlertDescription } from './ui/alert';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  MapPin, 
-  User, 
-  Info, 
+import { useState, useEffect } from "react";
+import { Pessoa } from "../types/api";
+import { ApiService } from "../services/api";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Skeleton } from "./ui/skeleton";
+import { Alert, AlertDescription } from "./ui/alert";
+import {
+  ArrowLeft,
+  Calendar,
+  MapPin,
+  User,
+  Info,
   Shirt,
   AlertCircle,
   Phone,
-  MessageSquare
-} from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+  MessageSquare,
+} from "lucide-react";
+import { ImageWithFallback } from "./figma/ImageWithFallback";
 
 interface PessoaDetalhesProps {
   pessoaId: number;
@@ -25,7 +25,11 @@ interface PessoaDetalhesProps {
   onEnviarInformacao: (pessoaId: number, pessoaNome: string) => void;
 }
 
-export function PessoaDetalhes({ pessoaId, onBack, onEnviarInformacao }: PessoaDetalhesProps) {
+export function PessoaDetalhes({
+  pessoaId,
+  onBack,
+  onEnviarInformacao,
+}: PessoaDetalhesProps) {
   const [pessoa, setPessoa] = useState<Pessoa | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,15 +40,15 @@ export function PessoaDetalhes({ pessoaId, onBack, onEnviarInformacao }: PessoaD
         setLoading(true);
         setError(null);
         const data = await ApiService.getPessoaById(pessoaId);
-        
+
         if (!data) {
-          setError('Pessoa não encontrada');
+          setError("Pessoa não encontrada");
           return;
         }
-        
+
         setPessoa(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
+        setError(err instanceof Error ? err.message : "Erro ao carregar dados");
       } finally {
         setLoading(false);
       }
@@ -55,21 +59,21 @@ export function PessoaDetalhes({ pessoaId, onBack, onEnviarInformacao }: PessoaD
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const formatDateOnly = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
     });
   };
 
@@ -79,7 +83,7 @@ export function PessoaDetalhes({ pessoaId, onBack, onEnviarInformacao }: PessoaD
         <div className="mb-6">
           <Skeleton className="h-10 w-32" />
         </div>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1">
             <Card>
@@ -93,7 +97,7 @@ export function PessoaDetalhes({ pessoaId, onBack, onEnviarInformacao }: PessoaD
               </CardContent>
             </Card>
           </div>
-          
+
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
@@ -114,19 +118,19 @@ export function PessoaDetalhes({ pessoaId, onBack, onEnviarInformacao }: PessoaD
   if (error || !pessoa) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           onClick={onBack}
           className="mb-6 flex items-center gap-2"
         >
           <ArrowLeft className="w-4 h-4" />
           Voltar
         </Button>
-        
+
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {error || 'Pessoa não encontrada'}
+            {error || "Pessoa não encontrada"}
           </AlertDescription>
         </Alert>
       </div>
@@ -137,8 +141,8 @@ export function PessoaDetalhes({ pessoaId, onBack, onEnviarInformacao }: PessoaD
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Button 
-        variant="ghost" 
+      <Button
+        variant="ghost"
         onClick={onBack}
         className="mb-6 flex items-center gap-2 hover:bg-accent"
       >
@@ -165,13 +169,13 @@ export function PessoaDetalhes({ pessoaId, onBack, onEnviarInformacao }: PessoaD
                     </div>
                   )}
                 </div>
-                
+
                 <div className="absolute top-4 right-4">
-                  <Badge 
+                  <Badge
                     variant={isLocalizada ? "default" : "destructive"}
                     className={`${
-                      isLocalizada 
-                        ? "bg-green-600 hover:bg-green-700 text-white" 
+                      isLocalizada
+                        ? "bg-green-600 hover:bg-green-700 text-white"
                         : "bg-red-600 hover:bg-red-700 text-white"
                     } shadow-lg text-sm px-3 py-1`}
                   >
@@ -186,14 +190,18 @@ export function PessoaDetalhes({ pessoaId, onBack, onEnviarInformacao }: PessoaD
                     {pessoa.nome}
                   </h1>
                   <div className="flex items-center gap-4 text-muted-foreground">
-                    <span>{pessoa.idade > 0 ? `${pessoa.idade} anos` : 'Idade não informada'}</span>
+                    <span>
+                      {pessoa.idade > 0
+                        ? `${pessoa.idade} anos`
+                        : "Idade não informada"}
+                    </span>
                     <span>•</span>
                     <span>{pessoa.sexo}</span>
                   </div>
                 </div>
 
                 <div className="pt-4 border-t">
-                  <Button 
+                  <Button
                     onClick={() => onEnviarInformacao(pessoa.id, pessoa.nome)}
                     className="w-full flex items-center gap-2"
                     size="lg"
@@ -256,7 +264,9 @@ export function PessoaDetalhes({ pessoaId, onBack, onEnviarInformacao }: PessoaD
                     {formatDateOnly(pessoa.ultimaOcorrencia.dataLocalizacao)}
                   </p>
                   <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                    {pessoa.ultimaOcorrencia.encontradoVivo ? 'Encontrada viva' : 'Encontrada'}
+                    {pessoa.ultimaOcorrencia.encontradoVivo
+                      ? "Encontrada viva"
+                      : "Encontrada"}
                   </p>
                 </div>
               )}
@@ -264,7 +274,8 @@ export function PessoaDetalhes({ pessoaId, onBack, onEnviarInformacao }: PessoaD
           </Card>
 
           {/* Vestimentas */}
-          {pessoa.ultimaOcorrencia.ocorrenciaEntrevDesapDTO.vestimentasDesaparecido && (
+          {pessoa.ultimaOcorrencia.ocorrenciaEntrevDesapDTO
+            ?.vestimentasDesaparecido && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -274,14 +285,17 @@ export function PessoaDetalhes({ pessoaId, onBack, onEnviarInformacao }: PessoaD
               </CardHeader>
               <CardContent>
                 <p className="text-foreground leading-relaxed">
-                  {pessoa.ultimaOcorrencia.ocorrenciaEntrevDesapDTO.vestimentasDesaparecido}
+                  {
+                    pessoa.ultimaOcorrencia.ocorrenciaEntrevDesapDTO
+                      ?.vestimentasDesaparecido
+                  }
                 </p>
               </CardContent>
             </Card>
           )}
 
           {/* Informações Adicionais */}
-          {pessoa.ultimaOcorrencia.ocorrenciaEntrevDesapDTO.informacao && (
+          {pessoa.ultimaOcorrencia.ocorrenciaEntrevDesapDTO?.informacao && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -291,7 +305,7 @@ export function PessoaDetalhes({ pessoaId, onBack, onEnviarInformacao }: PessoaD
               </CardHeader>
               <CardContent>
                 <p className="text-foreground leading-relaxed">
-                  {pessoa.ultimaOcorrencia.ocorrenciaEntrevDesapDTO.informacao}
+                  {pessoa.ultimaOcorrencia.ocorrenciaEntrevDesapDTO?.informacao}
                 </p>
               </CardContent>
             </Card>
@@ -321,7 +335,7 @@ export function PessoaDetalhes({ pessoaId, onBack, onEnviarInformacao }: PessoaD
                     Status da Pessoa
                   </label>
                   <p className="text-foreground mt-1">
-                    {pessoa.vivo ? 'Viva' : 'Não confirmado'}
+                    {pessoa.vivo ? "Viva" : "Não confirmado"}
                   </p>
                 </div>
               </div>
@@ -332,9 +346,10 @@ export function PessoaDetalhes({ pessoaId, onBack, onEnviarInformacao }: PessoaD
           <Alert>
             <Phone className="h-4 w-4" />
             <AlertDescription>
-              <strong>Importante:</strong> Se você possui informações sobre esta pessoa, 
-              entre em contato com a Polícia Civil do Estado de Mato Grosso através do 
-              telefone 197 ou utilize o botão "Enviar Informação" acima.
+              <strong>Importante:</strong> Se você possui informações sobre esta
+              pessoa, entre em contato com a Polícia Civil do Estado de Mato
+              Grosso através do telefone 197 ou utilize o botão "Enviar
+              Informação" acima.
             </AlertDescription>
           </Alert>
         </div>
