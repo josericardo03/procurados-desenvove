@@ -1,9 +1,16 @@
-import { SearchFilters as SearchFiltersType } from '../types/api';
-import { Input } from './ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Button } from './ui/button';
-import { Search, X, Filter, Sparkles } from 'lucide-react';
-import { Card, CardContent } from './ui/card';
+import { useEffect, useState } from "react";
+import { SearchFilters as SearchFiltersType } from "../types/api";
+import { Input } from "./ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Button } from "./ui/button";
+import { Search, X, Filter, Sparkles } from "lucide-react";
+import { Card, CardContent } from "./ui/card";
 
 interface SearchFiltersProps {
   filters: SearchFiltersType;
@@ -12,31 +19,45 @@ interface SearchFiltersProps {
   isLoading?: boolean;
 }
 
-export function SearchFilters({ 
-  filters, 
-  onFiltersChange, 
+export function SearchFilters({
+  filters,
+  onFiltersChange,
   onClearFilters,
-  isLoading = false 
+  isLoading = false,
 }: SearchFiltersProps) {
-  const handleNameChange = (value: string) => {
-    onFiltersChange({ ...filters, nome: value || undefined });
-  };
+  // Estados locais para evitar travar a digitação e debounciar as requisições
+  const [nome, setNome] = useState<string>(filters.nome || "");
+  const [status, setStatus] = useState<"desaparecido" | "localizado" | "todos">(
+    filters.status || "todos"
+  );
+  const [sexo, setSexo] = useState<"MASCULINO" | "FEMININO" | "todos">(
+    filters.sexo || "todos"
+  );
 
-  const handleStatusChange = (value: string) => {
-    onFiltersChange({ 
-      ...filters, 
-      status: value === 'todos' ? undefined : value as 'desaparecido' | 'localizado'
-    });
-  };
+  // Sincroniza quando filtros são limpos/alterados de fora
+  useEffect(() => {
+    setNome(filters.nome || "");
+    setStatus(filters.status || "todos");
+    setSexo(filters.sexo || "todos");
+  }, [filters.nome, filters.sexo, filters.status]);
 
-  const handleSexoChange = (value: string) => {
-    onFiltersChange({ 
-      ...filters, 
-      sexo: value === 'todos' ? undefined : value as 'MASCULINO' | 'FEMININO'
-    });
-  };
+  // Debounce para reduzir chamadas à API enquanto digita
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      onFiltersChange({
+        nome: nome.trim() || undefined,
+        status: status === "todos" ? undefined : status,
+        sexo: sexo === "todos" ? undefined : sexo,
+      });
+    }, 450);
+    return () => clearTimeout(handler);
+    // Intencionalmente não dependemos de onFiltersChange para evitar loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nome, status, sexo]);
 
-  const hasActiveFilters = filters.nome || filters.status || filters.sexo;
+  const hasActiveFilters = Boolean(
+    nome || (status && status !== "todos") || (sexo && sexo !== "todos")
+  );
 
   return (
     <div className="mb-8">
@@ -50,11 +71,15 @@ export function SearchFilters({
                   <Search className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">Filtros de Busca</h2>
-                  <p className="text-slate-300 text-sm">Refine sua pesquisa para encontrar pessoas específicas</p>
+                  <h2 className="text-lg font-bold text-white">
+                    Filtros de Busca
+                  </h2>
+                  <p className="text-slate-300 text-sm">
+                    Refine sua pesquisa para encontrar pessoas específicas
+                  </p>
                 </div>
               </div>
-              
+
               {hasActiveFilters && (
                 <div className="flex items-center gap-2 text-sm text-slate-300">
                   <Sparkles className="w-4 h-4" />
@@ -76,8 +101,8 @@ export function SearchFilters({
                 <div className="relative">
                   <Input
                     placeholder="Digite o nome para buscar..."
-                    value={filters.nome || ''}
-                    onChange={(e) => handleNameChange(e.target.value)}
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
                     disabled={isLoading}
                     className="bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500 pl-10 h-11 shadow-sm"
                   />
@@ -91,23 +116,31 @@ export function SearchFilters({
                   <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                   Status da Pessoa
                 </label>
-                <Select 
-                  value={filters.status || 'todos'} 
-                  onValueChange={handleStatusChange}
+                <Select
+                  value={status}
+                  onValueChange={(v) => setStatus(v as any)}
                   disabled={isLoading}
                 >
                   <SelectTrigger className="bg-white border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 h-11 shadow-sm">
                     <SelectValue placeholder="Selecione o status" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-slate-200 shadow-xl">
-                    <SelectItem value="todos" className="hover:bg-slate-50">Todas as Pessoas</SelectItem>
-                    <SelectItem value="desaparecido" className="hover:bg-red-50 text-red-700">
+                    <SelectItem value="todos" className="hover:bg-slate-50">
+                      Todas as Pessoas
+                    </SelectItem>
+                    <SelectItem
+                      value="desaparecido"
+                      className="hover:bg-red-50 text-red-700"
+                    >
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                         Desaparecidas
                       </div>
                     </SelectItem>
-                    <SelectItem value="localizado" className="hover:bg-green-50 text-green-700">
+                    <SelectItem
+                      value="localizado"
+                      className="hover:bg-green-50 text-green-700"
+                    >
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                         Localizadas
@@ -123,18 +156,24 @@ export function SearchFilters({
                   <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                   Sexo
                 </label>
-                <Select 
-                  value={filters.sexo || 'todos'} 
-                  onValueChange={handleSexoChange}
+                <Select
+                  value={sexo}
+                  onValueChange={(v) => setSexo(v as any)}
                   disabled={isLoading}
                 >
                   <SelectTrigger className="bg-white border-slate-200 focus:border-purple-500 focus:ring-purple-500 h-11 shadow-sm">
                     <SelectValue placeholder="Selecione o sexo" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-slate-200 shadow-xl">
-                    <SelectItem value="todos" className="hover:bg-slate-50">Todos</SelectItem>
-                    <SelectItem value="MASCULINO" className="hover:bg-blue-50">Masculino</SelectItem>
-                    <SelectItem value="FEMININO" className="hover:bg-pink-50">Feminino</SelectItem>
+                    <SelectItem value="todos" className="hover:bg-slate-50">
+                      Todos
+                    </SelectItem>
+                    <SelectItem value="MASCULINO" className="hover:bg-blue-50">
+                      Masculino
+                    </SelectItem>
+                    <SelectItem value="FEMININO" className="hover:bg-pink-50">
+                      Feminino
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -162,36 +201,51 @@ export function SearchFilters({
               <div className="mt-6 pt-6 border-t border-slate-200">
                 <div className="flex items-center gap-2 mb-3">
                   <Filter className="w-4 h-4 text-slate-600" />
-                  <span className="text-sm font-semibold text-slate-700">Filtros Aplicados:</span>
+                  <span className="text-sm font-semibold text-slate-700">
+                    Filtros Aplicados:
+                  </span>
                 </div>
-                
+
                 <div className="flex flex-wrap gap-3">
                   {filters.nome && (
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-800 rounded-lg border border-blue-200 shadow-sm">
                       <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                      <span className="text-sm font-medium">Nome: {filters.nome}</span>
-                    </div>
-                  )}
-                  
-                  {filters.status && (
-                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border shadow-sm ${
-                      filters.status === 'desaparecido' 
-                        ? 'bg-red-100 text-red-800 border-red-200' 
-                        : 'bg-green-100 text-green-800 border-green-200'
-                    }`}>
-                      <div className={`w-2 h-2 rounded-full ${
-                        filters.status === 'desaparecido' ? 'bg-red-600' : 'bg-green-600'
-                      }`}></div>
                       <span className="text-sm font-medium">
-                        Status: {filters.status === 'desaparecido' ? 'Desaparecidas' : 'Localizadas'}
+                        Nome: {filters.nome}
                       </span>
                     </div>
                   )}
-                  
+
+                  {filters.status && (
+                    <div
+                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border shadow-sm ${
+                        filters.status === "desaparecido"
+                          ? "bg-red-100 text-red-800 border-red-200"
+                          : "bg-green-100 text-green-800 border-green-200"
+                      }`}
+                    >
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          filters.status === "desaparecido"
+                            ? "bg-red-600"
+                            : "bg-green-600"
+                        }`}
+                      ></div>
+                      <span className="text-sm font-medium">
+                        Status:{" "}
+                        {filters.status === "desaparecido"
+                          ? "Desaparecidas"
+                          : "Localizadas"}
+                      </span>
+                    </div>
+                  )}
+
                   {filters.sexo && (
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-800 rounded-lg border border-purple-200 shadow-sm">
                       <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
-                      <span className="text-sm font-medium">Sexo: {filters.sexo}</span>
+                      <span className="text-sm font-medium">
+                        Sexo: {filters.sexo}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -203,7 +257,9 @@ export function SearchFilters({
               <div className="mt-6 pt-6 border-t border-slate-200">
                 <div className="flex items-center justify-center gap-3 py-2">
                   <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-sm text-slate-600 font-medium">Aplicando filtros...</span>
+                  <span className="text-sm text-slate-600 font-medium">
+                    Aplicando filtros...
+                  </span>
                 </div>
               </div>
             )}
