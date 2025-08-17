@@ -203,10 +203,6 @@ export function FormularioInformacao({
                 className="min-h-32 resize-none"
                 {...register("informacao", {
                   required: "Este campo é obrigatório",
-                  minLength: {
-                    value: 20,
-                    message: "A informação deve ter pelo menos 20 caracteres",
-                  },
                 })}
               />
               <div className="flex justify-between items-center">

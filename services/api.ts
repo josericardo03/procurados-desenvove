@@ -236,14 +236,14 @@ export class ApiService {
   }
 
   static async getPessoaById(id: number): Promise<Pessoa | null> {
-    // 1) Tenta por ID direto (se a API aceitar)
-    const tryById = async (): Promise<Pessoa | null> => {
+    // 1) Tenta endpoint direto por id: /v1/pessoas/{id}
+    const tryDirect = async (): Promise<Pessoa | null> => {
       try {
-        const url = `${API_BASE_URL}/v1/pessoas/aberto/filtro?pagina=0&porPagina=1&id=${id}`;
+        const url = `${API_BASE_URL}/v1/pessoas/${id}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("HTTP " + res.status);
-        const data = (await res.json()) as ApiResponse;
-        return data.content?.[0] ?? null;
+        const data = (await res.json()) as Pessoa;
+        return data ?? null;
       } catch {
         return null;
       }
@@ -262,7 +262,7 @@ export class ApiService {
       }
     };
 
-    const byId = await tryById();
+    const byId = await tryDirect();
     if (byId) return byId;
 
     const batch = await tryBatch();
