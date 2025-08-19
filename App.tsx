@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PessoasListagem } from "./components/PessoasListagem";
+import { ComoAjudar } from "./components/ComoAjudar";
 import { PessoaDetalhes } from "./components/PessoaDetalhes";
 import { FormularioInformacao } from "./components/FormularioInformacao";
 import { Toaster } from "./components/ui/sonner";
@@ -8,7 +9,8 @@ import { Shield, Home, Phone, Mail, MapPin } from "lucide-react";
 type AppState =
   | { view: "listagem" }
   | { view: "detalhes"; pessoaId: number }
-  | { view: "formulario"; pessoaId: number; pessoaNome: string; ocoId: number };
+  | { view: "formulario"; pessoaId: number; pessoaNome: string; ocoId: number }
+  | { view: "comoAjudar" };
 
 export default function App() {
   const [appState, setAppState] = useState<AppState>({ view: "listagem" });
@@ -27,6 +29,10 @@ export default function App() {
 
   const voltarParaListagem = () => {
     setAppState({ view: "listagem" });
+  };
+
+  const navegarParaComoAjudar = () => {
+    setAppState({ view: "comoAjudar" });
   };
 
   const voltarParaDetalhes = (pessoaId: number) => {
@@ -169,7 +175,10 @@ export default function App() {
       {/* Main Content */}
       <main className="relative">
         {appState.view === "listagem" && (
-          <PessoasListagem onPessoaClick={navegarParaDetalhes} />
+          <PessoasListagem
+            onPessoaClick={navegarParaDetalhes}
+            onComoAjudar={navegarParaComoAjudar}
+          />
         )}
 
         {appState.view === "detalhes" && (
@@ -194,6 +203,10 @@ export default function App() {
             onBack={() => voltarParaDetalhes(appState.pessoaId)}
             onSuccess={handleFormularioSuccess}
           />
+        )}
+
+        {appState.view === "comoAjudar" && (
+          <ComoAjudar onBack={voltarParaListagem} />
         )}
       </main>
 
