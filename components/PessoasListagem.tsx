@@ -9,6 +9,7 @@ import { Card, CardContent } from "./ui/card";
 import { Skeleton } from "./ui/skeleton";
 import { AlertCircle, Users, TrendingUp, Clock, Search } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
+import { TimeoutError, NetworkError, HttpError } from "../services/api";
 
 interface PessoasListagemProps {
   onPessoaClick: (id: number) => void;
@@ -37,7 +38,15 @@ export function PessoasListagem({
       setData(response);
       setCurrentPage(page);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido");
+      let message = "Erro desconhecido";
+      if (err instanceof TimeoutError)
+        message = "Tempo esgotado. Tente novamente.";
+      else if (err instanceof NetworkError)
+        message = "Falha de rede. Verifique sua conexão.";
+      else if (err instanceof HttpError)
+        message = `Erro do servidor (HTTP ${err.status}).`;
+      else if (err instanceof Error) message = err.message;
+      setError(message);
     } finally {
       setLoading(false);
     }

@@ -7,6 +7,28 @@ import {
 
 const API_BASE_URL = "https://abitus-api.geia.vip";
 
+// Erros tipados para tratamento na UI
+export class HttpError extends Error {
+  status: number;
+  constructor(status: number, message = "Erro HTTP") {
+    super(message);
+    this.name = "HttpError";
+    this.status = status;
+  }
+}
+export class TimeoutError extends Error {
+  constructor(message = "Tempo de requisição esgotado") {
+    super(message);
+    this.name = "TimeoutError";
+  }
+}
+export class NetworkError extends Error {
+  constructor(message = "Falha de rede. Verifique sua conexão") {
+    super(message);
+    this.name = "NetworkError";
+  }
+}
+
 // Mock de segurança/caso a API esteja indisponível
 const mockData: ApiResponse = {
   totalElements: 535,
@@ -200,7 +222,7 @@ export class ApiService {
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeout);
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new HttpError(res.status, `HTTP ${res.status}`);
       const data = (await res.json()) as ApiResponse;
 
       // Normalização extra no cliente: aplicar filtros que a API pode não respeitar 100%
@@ -299,48 +321,53 @@ export class ApiService {
 
       // Sem filtros adicionais: retorna o payload original
       return data;
-    } catch (error) {
-      console.warn("Falha ao consultar API, usando mock:", error);
-      // Fallback para mock para não quebrar a UI
-      let filteredContent = [...mockData.content];
-      if (filters.nome) {
-        filteredContent = filteredContent.filter((p) =>
-          p.nome.toLowerCase().includes(filters.nome!.toLowerCase())
-        );
+    } catch (error: any) {
+      const useMock = process.env.NEXT_PUBLIC_USE_API_MOCK === "true";
+      if (useMock) {
+        console.warn("Falha ao consultar API, usando mock:", error);
+        // Fallback para mock (apenas quando habilitado por flag)
+        let filteredContent = [...mockData.content];
+        if (filters.nome) {
+          filteredContent = filteredContent.filter((p) =>
+            p.nome.toLowerCase().includes(filters.nome!.toLowerCase())
+          );
+        }
+        if (filters.status && filters.status !== "todos") {
+          filteredContent = filteredContent.filter((p) =>
+            filters.status === "desaparecido"
+              ? !p.ultimaOcorrencia.dataLocalizacao
+              : Boolean(p.ultimaOcorrencia.dataLocalizacao)
+          );
+        }
+        if (filters.sexo && filters.sexo !== "todos") {
+          filteredContent = filteredContent.filter(
+            (p) => p.sexo === filters.sexo
+          );
+        }
+        if (filters.dataDesaparecimentoDe) {
+          const de = new Date(filters.dataDesaparecimentoDe);
+          filteredContent = filteredContent.filter(
+            (p) => new Date(p.ultimaOcorrencia.dtDesaparecimento) >= de
+          );
+        }
+        if (filters.dataDesaparecimentoAte) {
+          const ate = new Date(filters.dataDesaparecimentoAte);
+          ate.setHours(23, 59, 59, 999);
+          filteredContent = filteredContent.filter(
+            (p) => new Date(p.ultimaOcorrencia.dtDesaparecimento) <= ate
+          );
+        }
+        return {
+          ...mockData,
+          content: filteredContent.slice(0, size),
+          totalElements: filteredContent.length,
+          totalPages: Math.ceil(filteredContent.length / size),
+          pageable: { ...mockData.pageable, pageNumber: page, pageSize: size },
+        };
       }
-      if (filters.status && filters.status !== "todos") {
-        filteredContent = filteredContent.filter((p) =>
-          filters.status === "desaparecido"
-            ? !p.ultimaOcorrencia.dataLocalizacao
-            : Boolean(p.ultimaOcorrencia.dataLocalizacao)
-        );
-      }
-      if (filters.sexo && filters.sexo !== "todos") {
-        filteredContent = filteredContent.filter(
-          (p) => p.sexo === filters.sexo
-        );
-      }
-      if (filters.dataDesaparecimentoDe) {
-        const de = new Date(filters.dataDesaparecimentoDe);
-        filteredContent = filteredContent.filter(
-          (p) => new Date(p.ultimaOcorrencia.dtDesaparecimento) >= de
-        );
-      }
-      if (filters.dataDesaparecimentoAte) {
-        const ate = new Date(filters.dataDesaparecimentoAte);
-        // incluir o dia inteiro
-        ate.setHours(23, 59, 59, 999);
-        filteredContent = filteredContent.filter(
-          (p) => new Date(p.ultimaOcorrencia.dtDesaparecimento) <= ate
-        );
-      }
-      return {
-        ...mockData,
-        content: filteredContent.slice(0, size),
-        totalElements: filteredContent.length,
-        totalPages: Math.ceil(filteredContent.length / size),
-        pageable: { ...mockData.pageable, pageNumber: page, pageSize: size },
-      };
+      if (error?.name === "AbortError") throw new TimeoutError();
+      if (error instanceof HttpError) throw error;
+      throw new NetworkError();
     }
   }
 
@@ -349,11 +376,15 @@ export class ApiService {
     const tryDirect = async (): Promise<Pessoa | null> => {
       try {
         const url = `${API_BASE_URL}/v1/pessoas/${id}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("HTTP " + res.status);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeout);
+        if (!res.ok) throw new HttpError(res.status, "HTTP " + res.status);
         const data = (await res.json()) as Pessoa;
         return data ?? null;
-      } catch {
+      } catch (err) {
+        if ((err as any)?.name === "AbortError") throw new TimeoutError();
         return null;
       }
     };
@@ -362,11 +393,15 @@ export class ApiService {
     const tryBatch = async (): Promise<Pessoa | null> => {
       try {
         const url = `${API_BASE_URL}/v1/pessoas/aberto/filtro?pagina=0&porPagina=50`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("HTTP " + res.status);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeout);
+        if (!res.ok) throw new HttpError(res.status, "HTTP " + res.status);
         const data = (await res.json()) as ApiResponse;
         return data.content.find((p) => p.id === id) ?? null;
-      } catch {
+      } catch (err) {
+        if ((err as any)?.name === "AbortError") throw new TimeoutError();
         return null;
       }
     };
@@ -398,19 +433,25 @@ export class ApiService {
         informacao.fotos.forEach((f) => form.append("files", f, f.name));
       }
 
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
       const res = await fetch(
         `${API_BASE_URL}/v1/ocorrencias/informacoes-desaparecido?${query.toString()}`,
         {
           method: "POST",
           body: form,
+          signal: controller.signal,
         }
       );
+      clearTimeout(timeout);
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new HttpError(res.status, `HTTP ${res.status}`);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao enviar informação:", error);
-      throw new Error("Erro ao enviar informação");
+      if (error?.name === "AbortError") throw new TimeoutError();
+      if (error instanceof HttpError) throw error;
+      throw new NetworkError();
     }
   }
 }

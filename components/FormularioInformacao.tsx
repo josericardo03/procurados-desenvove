@@ -1,7 +1,12 @@
 import { useState, type ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { NovaInformacao } from "../types/api";
-import { ApiService } from "../services/api";
+import {
+  ApiService,
+  HttpError,
+  TimeoutError,
+  NetworkError,
+} from "../services/api";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -147,9 +152,15 @@ export function FormularioInformacao({
 
       onSuccess();
     } catch (error) {
-      toast.error("Erro ao enviar informação", {
-        description: "Tente novamente em alguns minutos.",
-      });
+      let description = "Tente novamente em alguns minutos.";
+      if (error instanceof TimeoutError)
+        description =
+          "Tempo esgotado. Verifique sua conexão e tente novamente.";
+      else if (error instanceof NetworkError)
+        description = "Falha de rede. Verifique sua conexão com a internet.";
+      else if (error instanceof HttpError)
+        description = `Erro do servidor (HTTP ${error.status}).`;
+      toast.error("Erro ao enviar informação", { description });
     } finally {
       setLoading(false);
     }
