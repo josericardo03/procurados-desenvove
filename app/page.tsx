@@ -1,7 +1,14 @@
 "use client";
 
-import App from "@/App";
+import { useRouter } from "next/navigation";
+import { PessoasListagem } from "@/components/PessoasListagem";
 
 export default function Page() {
-  return <App />;
+  const router = useRouter();
+  return (
+    <PessoasListagem
+      onPessoaClick={(id) => router.push(`/pessoa/${id}`)}
+      onComoAjudar={() => router.push(`/como-ajudar`)}
+    />
+  );
 }

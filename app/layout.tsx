@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "../styles/globals.css";
+import { RootShell } from "@/components/RootShell";
 
 export const metadata: Metadata = {
   title: "Pessoas Desaparecidas - MT",
@@ -14,7 +15,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <RootShell>{children}</RootShell>
+      </body>
     </html>
   );
 }
