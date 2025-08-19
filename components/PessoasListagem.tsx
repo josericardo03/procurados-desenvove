@@ -188,7 +188,10 @@ export function PessoasListagem({
 
         {/* Results Header */}
         <div className="mb-8">
-          <div className="bg-white/80 backdrop-blur-sm border border-white/60 rounded-2xl p-6 shadow-lg">
+          <div
+            className="bg-white/80 backdrop-blur-sm border border-white/60 rounded-2xl p-6 shadow-lg"
+            aria-live="polite"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">

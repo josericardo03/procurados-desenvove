@@ -31,9 +31,10 @@ export function ComoAjudar({ onBack }: ComoAjudarProps) {
   };
 
   const handleCompartilharWhatsApp = () => {
-    const mensagem = encodeURIComponent(
-      "Confira o sistema de Pessoas Desaparecidas da Polícia Civil de Mato Grosso. Sua informação pode ajudar a reunir famílias! 🙏"
-    );
+    const url = window.location.origin;
+    const texto =
+      `Confira o sistema de Pessoas Desaparecidas da Polícia Civil de Mato Grosso. Sua informação pode ajudar a reunir famílias! ${url}`.trim();
+    const mensagem = encodeURIComponent(texto);
     window.open(`https://wa.me/?text=${mensagem}`, "_blank");
   };
 

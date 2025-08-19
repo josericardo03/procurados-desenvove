@@ -9,10 +9,16 @@ interface PessoaCardProps {
   onClick: () => void;
 }
 
-export function PessoaCard({ pessoa, onClick }: PessoaCardProps) {
+import { memo, useMemo, useCallback } from "react";
+
+export const PessoaCard = memo(function PessoaCard({
+  pessoa,
+  onClick,
+}: PessoaCardProps) {
   const isLocalizada = pessoa.ultimaOcorrencia.dataLocalizacao !== null;
-  const dataDesaparecimento = new Date(
-    pessoa.ultimaOcorrencia.dtDesaparecimento
+  const dataDesaparecimento = useMemo(
+    () => new Date(pessoa.ultimaOcorrencia.dtDesaparecimento),
+    [pessoa.ultimaOcorrencia.dtDesaparecimento]
   );
 
   const formatDate = (date: Date) => {
@@ -23,19 +29,25 @@ export function PessoaCard({ pessoa, onClick }: PessoaCardProps) {
     });
   };
 
-  const calcularDiasDesaparecida = () => {
+  const diasDesaparecida = useMemo(() => {
     const hoje = new Date();
     const diffTime = Math.abs(hoje.getTime() - dataDesaparecimento.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
-  const diasDesaparecida = calcularDiasDesaparecida();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }, [dataDesaparecimento]);
 
   return (
     <Card
+      role="button"
+      aria-label={`Ver detalhes de ${pessoa.nome}`}
+      tabIndex={0}
       className="group cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-gradient-to-br from-white to-slate-50/50 border-0 shadow-lg hover:shadow-slate-200/60 overflow-hidden"
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
     >
       <CardContent className="p-0">
         {/* Image Section */}
@@ -172,4 +184,4 @@ export function PessoaCard({ pessoa, onClick }: PessoaCardProps) {
       </CardContent>
     </Card>
   );
-}
+});
