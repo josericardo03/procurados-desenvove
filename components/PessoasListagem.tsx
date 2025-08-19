@@ -307,9 +307,14 @@ export function PessoasListagem({
               <Button
                 size="lg"
                 className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-                onClick={() => window.open("tel:197", "_self")}
+                onClick={() =>
+                  window.open(
+                    "https://delegaciadigital.pjc.mt.gov.br",
+                    "_blank"
+                  )
+                }
               >
-                Ligar para 197
+                Delegacia Digital
               </Button>
               <Button
                 variant="outline"

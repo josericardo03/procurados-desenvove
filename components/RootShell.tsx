@@ -46,17 +46,16 @@ export function RootShell({ children }: RootShellProps) {
                 <span className="hidden sm:inline">Início</span>
               </Link>
 
-              <div className="hidden md:flex items-center gap-6 text-sm text-slate-300">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  <span>197</span>
-                </div>
-                <div className="w-1 h-4 bg-white/20 rounded-full" />
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  <span>Emergência</span>
-                </div>
-              </div>
+              <a
+                href="https://delegaciadigital.pjc.mt.gov.br"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden md:flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all duration-200 shadow-sm border border-white/10"
+                aria-label="Delegacia Digital - Registrar ocorrência"
+              >
+                <Shield className="w-4 h-4" />
+                <span>Delegacia Digital</span>
+              </a>
             </div>
           </div>
         </div>
@@ -80,9 +79,14 @@ export function RootShell({ children }: RootShellProps) {
                   </div>
                   <div>
                     <h3 className="font-bold text-lg">PC Mato Grosso</h3>
-                    <p className="text-slate-400 text-sm">
-                      Pessoas Desaparecidas
-                    </p>
+                    <a
+                      href="https://delegaciadigital.pjc.mt.gov.br"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-slate-300 text-sm underline-offset-2 hover:underline"
+                    >
+                      Delegacia Digital (Registrar ocorrência)
+                    </a>
                   </div>
                 </div>
                 <p className="text-slate-400 text-sm leading-relaxed">

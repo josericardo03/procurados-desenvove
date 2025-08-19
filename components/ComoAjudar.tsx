@@ -106,6 +106,7 @@ export function ComoAjudar({ onBack }: ComoAjudarProps) {
       descricao: "Atendimento 24h especializado em pessoas desaparecidas",
       cor: "red",
       prioridade: "Emergencial",
+      link: "https://www.pjc.mt.gov.br",
     },
     {
       titulo: "Polícia Militar",
@@ -113,13 +114,15 @@ export function ComoAjudar({ onBack }: ComoAjudarProps) {
       descricao: "Para situações de emergência e apoio imediato",
       cor: "blue",
       prioridade: "Emergencial",
+      link: "https://www.pm.mt.gov.br",
     },
     {
-      titulo: "Plantão Delegacia",
-      numero: "(65) 3648-5100",
-      descricao: "Atendimento direto da Delegacia de Pessoas Desaparecidas",
+      titulo: "Delegacia da Mulher",
+      numero: "(65) 3901-4277",
+      descricao: "Atendimento da Delegacia da Mulher",
       cor: "purple",
       prioridade: "Normal",
+      link: "https://www.pjc.mt.gov.br",
     },
   ];
 
@@ -315,7 +318,7 @@ export function ComoAjudar({ onBack }: ComoAjudarProps) {
             {contatos.map((contato, index) => (
               <Card
                 key={index}
-                className="bg-white/80 backdrop-blur-sm border-white/60 shadow-lg hover:shadow-xl transition-all duration-300 group"
+                className="bg-white/80 backdrop-blur-sm border-white/60 shadow-lg hover:shadow-xl transition-all duration-300 group h-full flex flex-col"
               >
                 <CardHeader className="text-center pb-4">
                   <div
@@ -351,7 +354,7 @@ export function ComoAjudar({ onBack }: ComoAjudarProps) {
 
                   <CardTitle className="text-xl">{contato.titulo}</CardTitle>
                   <div
-                    className={`text-2xl font-bold ${
+                    className={`text-2xl font-bold tabular-nums leading-none ${
                       contato.cor === "red"
                         ? "text-red-600"
                         : contato.cor === "blue"
@@ -362,13 +365,15 @@ export function ComoAjudar({ onBack }: ComoAjudarProps) {
                     {contato.numero}
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0 text-center">
+                <CardContent className="pt-0 text-center mt-auto">
                   <p className="text-slate-600 text-sm mb-4">
                     {contato.descricao}
                   </p>
                   <Button
                     onClick={() =>
-                      window.open(`tel:${contato.numero}`, "_self")
+                      contato.link
+                        ? window.open(contato.link, "_blank")
+                        : window.open(`tel:${contato.numero}`, "_self")
                     }
                     className={`w-full ${
                       contato.cor === "red"
@@ -379,7 +384,7 @@ export function ComoAjudar({ onBack }: ComoAjudarProps) {
                     }`}
                   >
                     <Phone className="w-4 h-4 mr-2" />
-                    Ligar Agora
+                    {contato.link ? "Acessar Site" : "Ligar Agora"}
                   </Button>
                 </CardContent>
               </Card>
@@ -449,12 +454,17 @@ export function ComoAjudar({ onBack }: ComoAjudarProps) {
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
-                  onClick={handleLigarPolicia}
+                  onClick={() =>
+                    window.open(
+                      "https://delegaciadigital.pjc.mt.gov.br",
+                      "_blank"
+                    )
+                  }
                   size="lg"
-                  className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
                 >
                   <Phone className="w-5 h-5" />
-                  Ligar 197 - Emergência
+                  Delegacia Digital
                 </Button>
 
                 <Button
