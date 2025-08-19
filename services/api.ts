@@ -190,6 +190,123 @@ export class ApiService {
     return usp.toString();
   }
 
+  static async getTotais(
+    filters: SearchFilters = {}
+  ): Promise<{ desaparecidas: number; localizadas: number }> {
+    // Estratégia paginada e leve:
+    // - Busca total geral (sem status)
+    // - Busca total de "LOCALIZADO" e pagina esses resultados para contar somente
+    //   aqueles com dataLocalizacao preenchida; desaparecidas = totalGeral - localizadasValidas
+    const makeUrl = (
+      page: number,
+      size: number,
+      status?: "DESAPARECIDO" | "LOCALIZADO"
+    ) => {
+      const q = this.buildQuery({
+        pagina: page,
+        porPagina: size,
+        nome: filters.nome || undefined,
+        status,
+        sexo:
+          filters.sexo && filters.sexo !== "todos" ? filters.sexo : undefined,
+        dataDesaparecimentoDe:
+          (filters as any).dataDesaparecimentoDe || undefined,
+        dataDesaparecimentoAte:
+          (filters as any).dataDesaparecimentoAte || undefined,
+      });
+      return `${API_BASE_URL}/v1/pessoas/aberto/filtro?${q}`;
+    };
+
+    try {
+      // 1) Total geral (sem status)
+      const ctrlTotal = new AbortController();
+      const tTotal = setTimeout(() => ctrlTotal.abort(), 10000);
+      const resTotal = await fetch(makeUrl(0, 1, undefined), {
+        signal: ctrlTotal.signal,
+      });
+      clearTimeout(tTotal);
+      if (!resTotal.ok) throw new HttpError(resTotal.status);
+      const totalData = (await resTotal.json()) as ApiResponse;
+      const totalGeral = totalData.totalElements;
+
+      // 2) Total de LOCALIZADO (pelo backend)
+      const ctrlHeadLoc = new AbortController();
+      const tHeadLoc = setTimeout(() => ctrlHeadLoc.abort(), 10000);
+      const resHeadLoc = await fetch(makeUrl(0, 1, "LOCALIZADO"), {
+        signal: ctrlHeadLoc.signal,
+      });
+      clearTimeout(tHeadLoc);
+      if (!resHeadLoc.ok) throw new HttpError(resHeadLoc.status);
+      const headLoc = (await resHeadLoc.json()) as ApiResponse;
+      const totalLocalizadoBackend = headLoc.totalElements;
+
+      // 3) Pagina LOCALIZADO para descontar inconsistências (sem dataLocalizacao)
+      const pageSize = 50;
+      const totalPages = Math.max(
+        1,
+        Math.ceil(totalLocalizadoBackend / pageSize)
+      );
+      let localizadasValidas = 0;
+      for (let page = 0; page < totalPages; page++) {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 12000);
+        const res = await fetch(makeUrl(page, pageSize, "LOCALIZADO"), {
+          signal: ctrl.signal,
+        });
+        clearTimeout(t);
+        if (!res.ok) throw new HttpError(res.status);
+        const data = (await res.json()) as ApiResponse;
+        localizadasValidas += data.content.filter((p) =>
+          Boolean(
+            p.ultimaOcorrencia.dataLocalizacao &&
+              String(p.ultimaOcorrencia.dataLocalizacao).trim() !== ""
+          )
+        ).length;
+      }
+
+      const localizadas = localizadasValidas;
+      const desaparecidas = Math.max(0, totalGeral - localizadas);
+      return { desaparecidas, localizadas };
+    } catch (error: any) {
+      const useMock = process.env.NEXT_PUBLIC_USE_API_MOCK === "true";
+      if (useMock) {
+        // Fallback: conta em cima do mock aplicando filtros
+        let items = [...mockData.content];
+        if (filters.nome) {
+          items = items.filter((p) =>
+            p.nome.toLowerCase().includes(filters.nome!.toLowerCase())
+          );
+        }
+        if (filters.sexo && filters.sexo !== "todos") {
+          items = items.filter((p) => p.sexo === filters.sexo);
+        }
+        if ((filters as any).dataDesaparecimentoDe) {
+          const de = new Date((filters as any).dataDesaparecimentoDe);
+          items = items.filter(
+            (p) => new Date(p.ultimaOcorrencia.dtDesaparecimento) >= de
+          );
+        }
+        if ((filters as any).dataDesaparecimentoAte) {
+          const ate = new Date((filters as any).dataDesaparecimentoAte);
+          ate.setHours(23, 59, 59, 999);
+          items = items.filter(
+            (p) => new Date(p.ultimaOcorrencia.dtDesaparecimento) <= ate
+          );
+        }
+        const desaparecidas = items.filter(
+          (p) => !p.ultimaOcorrencia.dataLocalizacao
+        ).length;
+        const localizadas = items.filter((p) =>
+          Boolean(p.ultimaOcorrencia.dataLocalizacao)
+        ).length;
+        return { desaparecidas, localizadas };
+      }
+      if (error?.name === "AbortError") throw new TimeoutError();
+      if (error instanceof HttpError) throw error;
+      throw new NetworkError();
+    }
+  }
+
   static async getPessoas(
     page: number = 0,
     size: number = 10,

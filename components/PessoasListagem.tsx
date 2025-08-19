@@ -25,6 +25,10 @@ export function PessoasListagem({
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [filters, setFilters] = useState<SearchFiltersType>({});
+  const [totais, setTotais] = useState<{
+    desaparecidas: number;
+    localizadas: number;
+  } | null>(null);
 
   const loadPessoas = async (
     page: number = 0,
@@ -54,11 +58,18 @@ export function PessoasListagem({
 
   useEffect(() => {
     loadPessoas(0);
+    // carrega totais iniciais
+    ApiService.getTotais({})
+      .then(setTotais)
+      .catch(() => setTotais(null));
   }, []);
 
   const handleFiltersChange = (newFilters: SearchFiltersType) => {
     setFilters(newFilters);
     loadPessoas(0, newFilters);
+    ApiService.getTotais(newFilters)
+      .then(setTotais)
+      .catch(() => setTotais(null));
   };
 
   const handleClearFilters = () => {
@@ -74,18 +85,10 @@ export function PessoasListagem({
 
   const getStatistics = () => {
     if (!data) return { total: 0, desaparecidas: 0, localizadas: 0 };
-
-    const desaparecidas = data.content.filter(
-      (p) => !p.ultimaOcorrencia.dataLocalizacao
-    ).length;
-    const localizadas = data.content.filter(
-      (p) => p.ultimaOcorrencia.dataLocalizacao
-    ).length;
-
     return {
       total: data.totalElements,
-      desaparecidas,
-      localizadas,
+      desaparecidas: totais?.desaparecidas ?? 0,
+      localizadas: totais?.localizadas ?? 0,
     };
   };
 
