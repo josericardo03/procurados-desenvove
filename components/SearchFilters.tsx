@@ -33,12 +33,20 @@ export function SearchFilters({
   const [sexo, setSexo] = useState<"MASCULINO" | "FEMININO" | "todos">(
     filters.sexo || "todos"
   );
+  const [dataDe, setDataDe] = useState<string>(
+    filters.dataDesaparecimentoDe || ""
+  );
+  const [dataAte, setDataAte] = useState<string>(
+    filters.dataDesaparecimentoAte || ""
+  );
 
   // Sincroniza quando filtros são limpos/alterados de fora
   useEffect(() => {
     setNome(filters.nome || "");
     setStatus(filters.status || "todos");
     setSexo(filters.sexo || "todos");
+    setDataDe(filters.dataDesaparecimentoDe || "");
+    setDataAte(filters.dataDesaparecimentoAte || "");
   }, [filters.nome, filters.sexo, filters.status]);
 
   // Debounce para reduzir chamadas à API enquanto digita
@@ -48,12 +56,14 @@ export function SearchFilters({
         nome: nome.trim() || undefined,
         status: status === "todos" ? undefined : status,
         sexo: sexo === "todos" ? undefined : sexo,
+        dataDesaparecimentoDe: dataDe || undefined,
+        dataDesaparecimentoAte: dataAte || undefined,
       });
     }, 450);
     return () => clearTimeout(handler);
     // Intencionalmente não dependemos de onFiltersChange para evitar loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nome, status, sexo]);
+  }, [nome, status, sexo, dataDe, dataAte]);
 
   const hasActiveFilters = Boolean(
     nome || (status && status !== "todos") || (sexo && sexo !== "todos")
@@ -176,6 +186,30 @@ export function SearchFilters({
                     </SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Filtro por Data de Desaparecimento */}
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  Data do Desaparecimento
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input
+                    type="date"
+                    value={dataDe}
+                    onChange={(e) => setDataDe(e.target.value)}
+                    className="h-11 px-3 rounded-md border border-slate-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="A partir de"
+                  />
+                  <input
+                    type="date"
+                    value={dataAte}
+                    onChange={(e) => setDataAte(e.target.value)}
+                    className="h-11 px-3 rounded-md border border-slate-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Até"
+                  />
+                </div>
               </div>
 
               {/* Clear Button */}

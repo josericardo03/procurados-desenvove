@@ -53,6 +53,8 @@ export interface SearchFilters {
   nome?: string;
   status?: "desaparecido" | "localizado" | "todos";
   sexo?: "MASCULINO" | "FEMININO" | "todos";
+  dataDesaparecimentoDe?: string; // formato yyyy-MM-dd
+  dataDesaparecimentoAte?: string; // formato yyyy-MM-dd
 }
 
 export interface NovaInformacao {

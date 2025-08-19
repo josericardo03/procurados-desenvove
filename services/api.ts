@@ -187,6 +187,8 @@ export class ApiService {
       nome: filters.nome || undefined,
       status: statusParam,
       sexo: filters.sexo && filters.sexo !== "todos" ? filters.sexo : undefined,
+      dataDesaparecimentoDe: filters.dataDesaparecimentoDe || undefined,
+      dataDesaparecimentoAte: filters.dataDesaparecimentoAte || undefined,
     });
     const url = `${API_BASE_URL}/v1/pessoas/aberto/filtro${
       query ? `?${query}` : ""
@@ -201,16 +203,43 @@ export class ApiService {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as ApiResponse;
 
-      // Normalização extra no cliente: quando filtro for "localizado",
-      // esconda registros sem data de localização.
-      if (filters.status === "localizado") {
-        const filtered = data.content.filter((p) =>
-          Boolean(
-            p.ultimaOcorrencia.dataLocalizacao &&
-              String(p.ultimaOcorrencia.dataLocalizacao).trim() !== ""
-          )
-        );
-        // Tenta ajustar totalElements/totalPages com base em todo o conjunto
+      // Normalização extra no cliente: aplicar filtros que a API pode não respeitar 100%
+      // - Status "localizado": exige dataLocalizacao preenchida
+      // - Intervalo de data do desaparecimento: baseado em ultimaOcorrencia.dtDesaparecimento
+      const hasDateRange = Boolean(
+        (filters as any).dataDesaparecimentoDe ||
+          (filters as any).dataDesaparecimentoAte
+      );
+      if (filters.status === "localizado" || hasDateRange) {
+        const applyLocalFilters = (list: typeof data.content) => {
+          let result = [...list];
+          if (filters.status === "localizado") {
+            result = result.filter((p) =>
+              Boolean(
+                p.ultimaOcorrencia.dataLocalizacao &&
+                  String(p.ultimaOcorrencia.dataLocalizacao).trim() !== ""
+              )
+            );
+          }
+          if ((filters as any).dataDesaparecimentoDe) {
+            const de = new Date((filters as any).dataDesaparecimentoDe);
+            result = result.filter(
+              (p) => new Date(p.ultimaOcorrencia.dtDesaparecimento) >= de
+            );
+          }
+          if ((filters as any).dataDesaparecimentoAte) {
+            const ate = new Date((filters as any).dataDesaparecimentoAte);
+            ate.setHours(23, 59, 59, 999);
+            result = result.filter(
+              (p) => new Date(p.ultimaOcorrencia.dtDesaparecimento) <= ate
+            );
+          }
+          return result;
+        };
+
+        const filteredPage = applyLocalFilters(data.content);
+
+        // Recontagem global: busca o conjunto completo e aplica os mesmos filtros localmente
         try {
           const queryAll = this.buildQuery({
             pagina: 0,
@@ -221,6 +250,10 @@ export class ApiService {
               filters.sexo && filters.sexo !== "todos"
                 ? filters.sexo
                 : undefined,
+            dataDesaparecimentoDe:
+              (filters as any).dataDesaparecimentoDe || undefined,
+            dataDesaparecimentoAte:
+              (filters as any).dataDesaparecimentoAte || undefined,
           });
           const urlAll = `${API_BASE_URL}/v1/pessoas/aberto/filtro?${queryAll}`;
           const controllerAll = new AbortController();
@@ -229,12 +262,7 @@ export class ApiService {
           clearTimeout(timeoutAll);
           if (resAll.ok) {
             const allData = (await resAll.json()) as ApiResponse;
-            const validAcrossAll = allData.content.filter((p) =>
-              Boolean(
-                p.ultimaOcorrencia.dataLocalizacao &&
-                  String(p.ultimaOcorrencia.dataLocalizacao).trim() !== ""
-              )
-            );
+            const validAcrossAll = applyLocalFilters(allData.content);
             const adjustedTotalElements = validAcrossAll.length;
             const adjustedTotalPages = Math.max(
               1,
@@ -242,40 +270,34 @@ export class ApiService {
             );
             return {
               ...data,
-              content: filtered,
-              numberOfElements: filtered.length,
+              content: filteredPage,
+              numberOfElements: filteredPage.length,
               totalElements: adjustedTotalElements,
               totalPages: adjustedTotalPages,
             };
           }
-        } catch {
-          // Se falhar a recontagem global, faz um ajuste aproximado com base na página atual
-          const removedInPage = data.content.length - filtered.length;
-          const adjustedTotalElements = Math.max(
-            0,
-            data.totalElements - removedInPage
-          );
-          const adjustedTotalPages = Math.max(
-            1,
-            Math.ceil(adjustedTotalElements / size)
-          );
-          return {
-            ...data,
-            content: filtered,
-            numberOfElements: filtered.length,
-            totalElements: adjustedTotalElements,
-            totalPages: adjustedTotalPages,
-          };
-        }
-        // Default (não deveria chegar aqui)
+        } catch {}
+
+        // Fallback: ajuste mínimo com base na página atual
+        const removedInPage = data.content.length - filteredPage.length;
+        const adjustedTotalElements = Math.max(
+          0,
+          data.totalElements - removedInPage
+        );
+        const adjustedTotalPages = Math.max(
+          1,
+          Math.ceil(adjustedTotalElements / size)
+        );
         return {
           ...data,
-          content: filtered,
-          numberOfElements: filtered.length,
+          content: filteredPage,
+          numberOfElements: filteredPage.length,
+          totalElements: adjustedTotalElements,
+          totalPages: adjustedTotalPages,
         };
       }
 
-      // Para os demais casos, retorna o payload como veio da API
+      // Sem filtros adicionais: retorna o payload original
       return data;
     } catch (error) {
       console.warn("Falha ao consultar API, usando mock:", error);
@@ -296,6 +318,20 @@ export class ApiService {
       if (filters.sexo && filters.sexo !== "todos") {
         filteredContent = filteredContent.filter(
           (p) => p.sexo === filters.sexo
+        );
+      }
+      if (filters.dataDesaparecimentoDe) {
+        const de = new Date(filters.dataDesaparecimentoDe);
+        filteredContent = filteredContent.filter(
+          (p) => new Date(p.ultimaOcorrencia.dtDesaparecimento) >= de
+        );
+      }
+      if (filters.dataDesaparecimentoAte) {
+        const ate = new Date(filters.dataDesaparecimentoAte);
+        // incluir o dia inteiro
+        ate.setHours(23, 59, 59, 999);
+        filteredContent = filteredContent.filter(
+          (p) => new Date(p.ultimaOcorrencia.dtDesaparecimento) <= ate
         );
       }
       return {
