@@ -58,6 +58,11 @@ export const PessoaCard = memo(function PessoaCard({
                 src={pessoa.urlFoto}
                 alt={`Foto de ${pessoa.nome}`}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                fallbackNode={
+                  <div className="w-full h-full bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 flex items-center justify-center group-hover:from-slate-300 group-hover:to-slate-200 transition-all duration-300">
+                    <User className="w-20 h-20 text-slate-400 group-hover:text-slate-500 transition-colors duration-300" />
+                  </div>
+                }
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 flex items-center justify-center group-hover:from-slate-300 group-hover:to-slate-200 transition-all duration-300">
