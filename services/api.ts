@@ -201,8 +201,81 @@ export class ApiService {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as ApiResponse;
 
-      // A API já trouxe o status filtrado quando 'status' foi enviado
-      // Mantemos esta lógica simples e retornamos o payload da API
+      // Normalização extra no cliente: quando filtro for "localizado",
+      // esconda registros sem data de localização.
+      if (filters.status === "localizado") {
+        const filtered = data.content.filter((p) =>
+          Boolean(
+            p.ultimaOcorrencia.dataLocalizacao &&
+              String(p.ultimaOcorrencia.dataLocalizacao).trim() !== ""
+          )
+        );
+        // Tenta ajustar totalElements/totalPages com base em todo o conjunto
+        try {
+          const queryAll = this.buildQuery({
+            pagina: 0,
+            porPagina: Math.max(data.totalElements, size),
+            nome: filters.nome || undefined,
+            status: statusParam,
+            sexo:
+              filters.sexo && filters.sexo !== "todos"
+                ? filters.sexo
+                : undefined,
+          });
+          const urlAll = `${API_BASE_URL}/v1/pessoas/aberto/filtro?${queryAll}`;
+          const controllerAll = new AbortController();
+          const timeoutAll = setTimeout(() => controllerAll.abort(), 15000);
+          const resAll = await fetch(urlAll, { signal: controllerAll.signal });
+          clearTimeout(timeoutAll);
+          if (resAll.ok) {
+            const allData = (await resAll.json()) as ApiResponse;
+            const validAcrossAll = allData.content.filter((p) =>
+              Boolean(
+                p.ultimaOcorrencia.dataLocalizacao &&
+                  String(p.ultimaOcorrencia.dataLocalizacao).trim() !== ""
+              )
+            );
+            const adjustedTotalElements = validAcrossAll.length;
+            const adjustedTotalPages = Math.max(
+              1,
+              Math.ceil(adjustedTotalElements / size)
+            );
+            return {
+              ...data,
+              content: filtered,
+              numberOfElements: filtered.length,
+              totalElements: adjustedTotalElements,
+              totalPages: adjustedTotalPages,
+            };
+          }
+        } catch {
+          // Se falhar a recontagem global, faz um ajuste aproximado com base na página atual
+          const removedInPage = data.content.length - filtered.length;
+          const adjustedTotalElements = Math.max(
+            0,
+            data.totalElements - removedInPage
+          );
+          const adjustedTotalPages = Math.max(
+            1,
+            Math.ceil(adjustedTotalElements / size)
+          );
+          return {
+            ...data,
+            content: filtered,
+            numberOfElements: filtered.length,
+            totalElements: adjustedTotalElements,
+            totalPages: adjustedTotalPages,
+          };
+        }
+        // Default (não deveria chegar aqui)
+        return {
+          ...data,
+          content: filtered,
+          numberOfElements: filtered.length,
+        };
+      }
+
+      // Para os demais casos, retorna o payload como veio da API
       return data;
     } catch (error) {
       console.warn("Falha ao consultar API, usando mock:", error);
