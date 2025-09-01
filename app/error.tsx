@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, RotateCcw } from "lucide-react";
+import { ErrorHandlerService } from "@/services/errorHandler";
 
 export default function GlobalError({
   error,
@@ -12,21 +13,23 @@ export default function GlobalError({
   error: Error;
   reset: () => void;
 }) {
+  const errorService = ErrorHandlerService.getInstance();
+
   useEffect(() => {
-    console.error("Global error boundary:", error);
-  }, [error]);
+    errorService.logError(error, "GlobalError");
+  }, [error, errorService]);
+
+  const errorContent = errorService.getErrorContent("error");
 
   return (
     <div className="container mx-auto px-4 py-16 max-w-2xl">
-      <Alert variant="destructive" className="mb-6">
+      <Alert variant={errorContent.variant} className="mb-6">
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Ocorreu um erro inesperado. Tente novamente.
-        </AlertDescription>
+        <AlertDescription>{errorContent.subtitle}</AlertDescription>
       </Alert>
       <Button onClick={reset} className="flex items-center gap-2">
         <RotateCcw className="w-4 h-4" />
-        Tentar novamente
+        {errorContent.buttonText}
       </Button>
     </div>
   );
