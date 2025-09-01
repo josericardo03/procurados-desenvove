@@ -67,3 +67,10 @@ export interface NovaInformacao {
   localizacao?: string;
   telefone?: string;
 }
+
+export interface ApiStatus {
+  isOnline: boolean;
+  lastChecked: Date;
+  responseTime?: number;
+  error?: string;
+}

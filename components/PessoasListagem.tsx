@@ -42,13 +42,14 @@ export function PessoasListagem({
       setData(response);
       setCurrentPage(page);
     } catch (err) {
-      let message = "Erro desconhecido";
+      let message = "Ocorreu um erro inesperado. Tente novamente.";
       if (err instanceof TimeoutError)
-        message = "Tempo esgotado. Tente novamente.";
+        message = "API está fora de funcionamento. Volte mais tarde.";
       else if (err instanceof NetworkError)
-        message = "Falha de rede. Verifique sua conexão.";
+        message =
+          "Problema de conexão. Verifique sua internet e tente novamente.";
       else if (err instanceof HttpError)
-        message = `Erro do servidor (HTTP ${err.status}).`;
+        message = `Serviço temporariamente indisponível (Erro ${err.status}). Tente novamente em alguns minutos.`;
       else if (err instanceof Error) message = err.message;
       setError(message);
     } finally {

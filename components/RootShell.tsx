@@ -1,15 +1,58 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Toaster } from "./ui/sonner";
 import { Shield, Phone, Mail, MapPin, Home } from "lucide-react";
 import Link from "next/link";
+import { ApiService, ApiStatus } from "../services/api";
 
 interface RootShellProps {
   children: ReactNode;
 }
 
 export function RootShell({ children }: RootShellProps) {
+  const [apiStatus, setApiStatus] = useState<ApiStatus>({
+    isOnline: false,
+    lastChecked: new Date(),
+  });
+  const [isChecking, setIsChecking] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  const checkApiStatus = async () => {
+    if (isChecking) return; // Evita múltiplas verificações simultâneas
+
+    try {
+      setIsChecking(true);
+      const status = await ApiService.checkApiStatus();
+      setApiStatus(status);
+    } catch (error) {
+      setApiStatus({
+        isOnline: false,
+        lastChecked: new Date(),
+        error: "Erro ao verificar status",
+      });
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  useEffect(() => {
+    setMounted(true);
+    // Verifica o status inicial
+    checkApiStatus();
+
+    // Verifica o status a cada 30 segundos
+    const interval = setInterval(checkApiStatus, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Evita erro de hidratação não renderizando o tempo até o componente estar montado
+  const renderTime = () => {
+    if (!mounted) return "Carregando...";
+    return apiStatus.lastChecked.toLocaleTimeString("pt-BR");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header */}
@@ -138,18 +181,58 @@ export function RootShell({ children }: RootShellProps) {
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
                     <span className="text-slate-300">API Status</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                      <span className="text-green-400">Online</span>
+                      <div
+                        className={`w-2 h-2 rounded-full animate-pulse ${
+                          apiStatus.isOnline ? "bg-green-500" : "bg-red-500"
+                        }`}
+                      />
+                      <span
+                        className={`${
+                          apiStatus.isOnline ? "text-green-400" : "text-red-400"
+                        }`}
+                      >
+                        {apiStatus.isOnline ? "Online" : "Offline"}
+                      </span>
                     </div>
+                  </div>
+                  {!apiStatus.isOnline && apiStatus.error && (
+                    <div className="text-xs text-red-400 bg-red-500/10 p-2 rounded border border-red-500/20">
+                      Erro: {apiStatus.error}
+                    </div>
+                  )}
+                  <button
+                    onClick={checkApiStatus}
+                    disabled={isChecking}
+                    className={`w-full mt-2 px-3 py-2 text-white text-xs rounded-lg transition-colors duration-200 ${
+                      isChecking
+                        ? "bg-blue-400 cursor-not-allowed"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }`}
+                    title="Verificar status da API"
+                  >
+                    {isChecking ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Verificando...
+                      </span>
+                    ) : (
+                      "Verificar Status"
+                    )}
+                  </button>
+                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                    <span className="text-slate-300">Última Verificação</span>
+                    <span className="text-white text-xs">{renderTime()}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
                     <span className="text-slate-300">Estado</span>
                     <span className="text-white">Mato Grosso</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <span className="text-slate-300">Última Atualização</span>
+                    <span className="text-slate-300">Data do Sistema</span>
                     <span className="text-white">
-                      {new Date().toLocaleDateString("pt-BR")}
+                      {mounted
+                        ? new Date().toLocaleDateString("pt-BR")
+                        : "Carregando..."}
                     </span>
                   </div>
                 </div>

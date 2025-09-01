@@ -3,6 +3,7 @@ import {
   Pessoa,
   SearchFilters,
   NovaInformacao,
+  ApiStatus,
 } from "../types/api";
 
 const API_BASE_URL = "https://abitus-api.geia.vip";
@@ -569,6 +570,58 @@ export class ApiService {
       if (error?.name === "AbortError") throw new TimeoutError();
       if (error instanceof HttpError) throw error;
       throw new NetworkError();
+    }
+  }
+
+  static async checkApiStatus(): Promise<ApiStatus> {
+    const startTime = Date.now();
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000); // Timeout mais curto para verificação de status
+
+      const res = await fetch(
+        `${API_BASE_URL}/v1/pessoas/aberto/filtro?pagina=0&porPagina=1`,
+        {
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeout);
+      const responseTime = Date.now() - startTime;
+
+      if (!res.ok) {
+        return {
+          isOnline: false,
+          lastChecked: new Date(),
+          responseTime,
+          error: `HTTP ${res.status}`,
+        };
+      }
+
+      return {
+        isOnline: true,
+        lastChecked: new Date(),
+        responseTime,
+      };
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+
+      if (error?.name === "AbortError") {
+        return {
+          isOnline: false,
+          lastChecked: new Date(),
+          responseTime,
+          error: "Timeout",
+        };
+      }
+
+      return {
+        isOnline: false,
+        lastChecked: new Date(),
+        responseTime,
+        error: error?.message || "Erro de conexão",
+      };
     }
   }
 }

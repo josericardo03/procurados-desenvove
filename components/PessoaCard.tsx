@@ -1,3 +1,6 @@
+"use client";
+
+import { useMemo, useState, useEffect } from "react";
 import { Pessoa } from "../types/api";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -9,13 +12,11 @@ interface PessoaCardProps {
   onClick: () => void;
 }
 
-import { memo, useMemo, useCallback } from "react";
-
-export const PessoaCard = memo(function PessoaCard({
-  pessoa,
-  onClick,
-}: PessoaCardProps) {
+export function PessoaCard({ pessoa, onClick }: PessoaCardProps) {
   const isLocalizada = pessoa.ultimaOcorrencia.dataLocalizacao !== null;
+  const [diasDesaparecida, setDiasDesaparecida] = useState<number>(0);
+  const [mounted, setMounted] = useState(false);
+
   const dataDesaparecimento = useMemo(
     () => new Date(pessoa.ultimaOcorrencia.dtDesaparecimento),
     [pessoa.ultimaOcorrencia.dtDesaparecimento]
@@ -29,10 +30,12 @@ export const PessoaCard = memo(function PessoaCard({
     });
   };
 
-  const diasDesaparecida = useMemo(() => {
+  useEffect(() => {
+    setMounted(true);
     const hoje = new Date();
     const diffTime = Math.abs(hoje.getTime() - dataDesaparecimento.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const dias = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    setDiasDesaparecida(dias);
   }, [dataDesaparecimento]);
 
   return (
@@ -85,7 +88,7 @@ export const PessoaCard = memo(function PessoaCard({
             </div>
 
             {/* Days Counter for Missing Persons */}
-            {!isLocalizada && (
+            {!isLocalizada && mounted && (
               <div className="absolute bottom-4 left-4 z-10">
                 <div className="bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs font-medium border border-white/20">
                   <div className="flex items-center gap-1">
@@ -189,4 +192,4 @@ export const PessoaCard = memo(function PessoaCard({
       </CardContent>
     </Card>
   );
-});
+}

@@ -152,14 +152,15 @@ export function FormularioInformacao({
 
       onSuccess();
     } catch (error) {
-      let description = "Tente novamente em alguns minutos.";
+      let description =
+        "Ocorreu um erro inesperado. Tente novamente em alguns minutos.";
       if (error instanceof TimeoutError)
-        description =
-          "Tempo esgotado. Verifique sua conexão e tente novamente.";
+        description = "API está fora de funcionamento. Volte mais tarde.";
       else if (error instanceof NetworkError)
-        description = "Falha de rede. Verifique sua conexão com a internet.";
+        description =
+          "Problema de conexão. Verifique sua internet e tente novamente.";
       else if (error instanceof HttpError)
-        description = `Erro do servidor (HTTP ${error.status}).`;
+        description = `Serviço temporariamente indisponível (Erro ${error.status}). Tente novamente em alguns minutos.`;
       toast.error("Erro ao enviar informação", { description });
     } finally {
       setLoading(false);
