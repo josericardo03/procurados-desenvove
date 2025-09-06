@@ -6,6 +6,9 @@ import {
   ApiStatus,
 } from "../types/api";
 
+// Re-exportar ApiStatus para uso em outros componentes
+export type { ApiStatus };
+
 const API_BASE_URL = "https://abitus-api.geia.vip";
 
 // Erros tipados para tratamento na UI

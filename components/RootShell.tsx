@@ -56,7 +56,7 @@ export function RootShell({ children }: RootShellProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header */}
-      <header className="relative bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b shadow-xl sticky top-0 z-50 overflow-hidden">
+      <header className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b shadow-xl sticky top-0 z-50 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,119,198,0.3),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(255,255,255,0.1),transparent_50%)]" />
         <div className="relative container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
