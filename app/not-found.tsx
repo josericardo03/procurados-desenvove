@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "../components/ui/button";
+import { Alert, AlertDescription } from "../components/ui/alert";
 import { AlertCircle, Home, Clock } from "lucide-react";
 import {
   setupAutoRedirect,
   ErrorHandlerService,
-} from "@/services/errorHandler";
+} from "../services/errorHandler";
 
 export default function NotFound() {
   const router = useRouter();

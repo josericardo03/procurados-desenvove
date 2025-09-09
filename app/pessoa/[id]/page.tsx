@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { PessoaDetalhes } from "@/components/PessoaDetalhes";
+import { PessoaDetalhes } from "../../../components/PessoaDetalhes";
 
 export default function Page() {
   const router = useRouter();

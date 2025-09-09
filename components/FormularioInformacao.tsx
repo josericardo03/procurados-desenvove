@@ -1,18 +1,18 @@
 import { useState, type ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
-import { NovaInformacao } from "../types/api";
+import { NovaInformacao } from "@/types/api";
 import {
   ApiService,
   HttpError,
   TimeoutError,
   NetworkError,
-} from "../services/api";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Textarea } from "./ui/textarea";
-import { Label } from "./ui/label";
-import { Alert, AlertDescription } from "./ui/alert";
+} from "@/services/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -24,6 +24,7 @@ import {
   MessageSquare,
   CheckCircle,
   AlertCircle,
+  Calendar,
 } from "lucide-react";
 
 interface FormularioInformacaoProps {
@@ -52,6 +53,8 @@ export function FormularioInformacao({
   const [loading, setLoading] = useState(false);
   const [fotos, setFotos] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   const {
     register,
@@ -59,6 +62,8 @@ export function FormularioInformacao({
     formState: { errors },
     watch,
     setValue,
+    setError,
+    clearErrors,
   } = useForm<InformacaoFormData>({
     defaultValues: {
       data: new Date().toISOString().slice(0, 10),
@@ -66,6 +71,7 @@ export function FormularioInformacao({
       localizacao: "",
       telefone: "",
     },
+    mode: "onChange",
   });
 
   // Máscara para telefone
@@ -80,10 +86,121 @@ export function FormularioInformacao({
     return value;
   };
 
-  // Removido telefone/localizacao da submissão para alinhar com especificação atual
+  // Validação de telefone
+  const validatePhone = (phone: string) => {
+    if (!phone) return true; // telefone é opcional
+    const cleaned = phone.replace(/\D/g, "");
+    return cleaned.length >= 10 && cleaned.length <= 11;
+  };
+
+  // Validação de data
+  const validateDate = (date: string) => {
+    if (!date) return false;
+    const selectedDate = new Date(date);
+    const today = new Date();
+    const minDate = new Date();
+    minDate.setFullYear(today.getFullYear() - 1); // máximo 1 ano atrás
+
+    return selectedDate >= minDate && selectedDate <= today;
+  };
+
   const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
     const formatted = formatPhone(e.target.value);
     setValue("telefone", formatted);
+
+    // Validar telefone
+    if (formatted && !validatePhone(formatted)) {
+      setError("telefone", {
+        type: "manual",
+        message: "Telefone deve ter 10 ou 11 dígitos",
+      });
+    } else {
+      clearErrors("telefone");
+    }
+  };
+
+  const handleDateChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const date = e.target.value;
+    setValue("data", date);
+
+    // Validar data
+    if (!validateDate(date)) {
+      setError("data", {
+        type: "manual",
+        message: "Data deve ser entre 1 ano atrás e hoje",
+      });
+    } else {
+      clearErrors("data");
+    }
+  };
+
+  // Função para obter localização automática
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocalização não é suportada neste navegador");
+      return;
+    }
+
+    setLocationLoading(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+
+        // Usar API de geocodificação reversa para obter endereço
+        fetch(
+          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=pt`
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.city && data.principalSubdivision) {
+              const endereco = `${data.city}, ${data.principalSubdivision}`;
+              setValue("localizacao", endereco);
+              toast.success("Localização obtida com sucesso!");
+            } else {
+              setValue(
+                "localizacao",
+                `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+              );
+              toast.success("Coordenadas obtidas com sucesso!");
+            }
+          })
+          .catch(() => {
+            // Fallback para coordenadas se a API falhar
+            setValue(
+              "localizacao",
+              `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+            );
+            toast.success("Coordenadas obtidas com sucesso!");
+          })
+          .finally(() => {
+            setLocationLoading(false);
+          });
+      },
+      (error) => {
+        let message = "Erro ao obter localização";
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            message = "Permissão de localização negada";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            message = "Localização indisponível";
+            break;
+          case error.TIMEOUT:
+            message = "Tempo limite excedido";
+            break;
+        }
+        setLocationError(message);
+        setLocationLoading(false);
+        toast.error(message);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000, // 5 minutos
+      }
+    );
   };
 
   const handleFileSelect = (files: FileList | null) => {
@@ -203,6 +320,36 @@ export function FormularioInformacao({
           </Alert>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Data do avistamento */}
+            <div className="space-y-2">
+              <Label htmlFor="data" className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Data do avistamento *
+              </Label>
+              <Input
+                id="data"
+                type="date"
+                max={new Date().toISOString().slice(0, 10)}
+                min={new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+                  .toISOString()
+                  .slice(0, 10)}
+                {...register("data", {
+                  required: "Data é obrigatória",
+                  validate: validateDate,
+                })}
+                onChange={handleDateChange}
+                className={errors.data ? "border-destructive" : ""}
+              />
+              {errors.data && (
+                <span className="text-sm text-destructive">
+                  {errors.data.message}
+                </span>
+              )}
+              <p className="text-sm text-muted-foreground">
+                Data em que você viu ou teve informações sobre esta pessoa
+              </p>
+            </div>
+
             {/* Informação principal */}
             <div className="space-y-2">
               <Label htmlFor="informacao" className="flex items-center gap-2">
@@ -215,6 +362,14 @@ export function FormularioInformacao({
                 className="min-h-32 resize-none"
                 {...register("informacao", {
                   required: "Este campo é obrigatório",
+                  minLength: {
+                    value: 10,
+                    message: "Informação deve ter pelo menos 10 caracteres",
+                  },
+                  maxLength: {
+                    value: 500,
+                    message: "Informação deve ter no máximo 500 caracteres",
+                  },
                 })}
               />
               <div className="flex justify-between items-center">
@@ -235,14 +390,34 @@ export function FormularioInformacao({
                 <MapPin className="w-4 h-4" />
                 Local onde a pessoa foi vista (opcional)
               </Label>
-              <Input
-                id="localizacao"
-                placeholder="Ex: Rua das Flores, 123 - Centro - Cuiabá/MT"
-                {...register("localizacao")}
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="localizacao"
+                  placeholder="Ex: Rua das Flores, 123 - Centro - Cuiabá/MT"
+                  {...register("localizacao")}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={getCurrentLocation}
+                  disabled={locationLoading}
+                  className="px-3"
+                >
+                  {locationLoading ? (
+                    <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                  ) : (
+                    <MapPin className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+              {locationError && (
+                <p className="text-sm text-destructive">{locationError}</p>
+              )}
               <p className="text-sm text-muted-foreground">
                 Seja específico com endereços, pontos de referência ou
-                coordenadas
+                coordenadas. Use o botão de localização para obter sua posição
+                atual automaticamente.
               </p>
             </div>
 
@@ -258,7 +433,13 @@ export function FormularioInformacao({
                 value={watch("telefone") || ""}
                 onChange={handlePhoneChange}
                 maxLength={15}
+                className={errors.telefone ? "border-destructive" : ""}
               />
+              {errors.telefone && (
+                <span className="text-sm text-destructive">
+                  {errors.telefone.message}
+                </span>
+              )}
               <p className="text-sm text-muted-foreground">
                 Para que a polícia possa entrar em contato se necessário
               </p>
@@ -348,13 +529,14 @@ export function FormularioInformacao({
                 variant="outline"
                 onClick={onBack}
                 className="flex-1"
+                disabled={loading}
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                disabled={loading}
-                className="flex-1 flex items-center gap-2"
+                disabled={loading || locationLoading}
+                className="flex-1 flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
@@ -369,6 +551,23 @@ export function FormularioInformacao({
                 )}
               </Button>
             </div>
+
+            {/* Status de processamento */}
+            {loading && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-800">
+                      Enviando sua informação...
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      Por favor, aguarde enquanto processamos sua contribuição.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </form>
 
           <Alert>

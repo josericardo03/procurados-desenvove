@@ -4,12 +4,18 @@ import {
   SearchFilters,
   NovaInformacao,
   ApiStatus,
-} from "../types/api";
+} from "@/types/api";
+import apiClient, {
+  makeRequest,
+  createCancelToken,
+} from "@/services/apiClient";
 
 // Re-exportar ApiStatus para uso em outros componentes
 export type { ApiStatus };
 
-const API_BASE_URL = "https://abitus-api.geia.vip";
+// Base URL da API
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://abitus-api.geia.vip";
 
 // Erros tipados para tratamento na UI
 export class HttpError extends Error {
@@ -314,7 +320,8 @@ export class ApiService {
   static async getPessoas(
     page: number = 0,
     size: number = 10,
-    filters: SearchFilters = {}
+    filters: SearchFilters = {},
+    cancelToken?: any
   ): Promise<ApiResponse> {
     // Mapeia o status da UI para o esperado pela API (ex.: LOCALIZADO | DESAPARECIDO)
     const statusParam =
@@ -333,18 +340,15 @@ export class ApiService {
       dataDesaparecimentoDe: filters.dataDesaparecimentoDe || undefined,
       dataDesaparecimentoAte: filters.dataDesaparecimentoAte || undefined,
     });
-    const url = `${API_BASE_URL}/v1/pessoas/aberto/filtro${
-      query ? `?${query}` : ""
-    }`;
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeout);
-
-      if (!res.ok) throw new HttpError(res.status, `HTTP ${res.status}`);
-      const data = (await res.json()) as ApiResponse;
+      const data = await makeRequest<ApiResponse>(
+        {
+          method: "GET",
+          url: `/v1/pessoas/aberto/filtro${query ? `?${query}` : ""}`,
+        },
+        cancelToken
+      );
 
       // Normalização extra no cliente: aplicar filtros que a API pode não respeitar 100%
       // - Status "localizado": exige dataLocalizacao preenchida

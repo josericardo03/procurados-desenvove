@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Pessoa } from "../types/api";
-import { ApiService } from "../services/api";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
-import { Skeleton } from "./ui/skeleton";
-import { Alert, AlertDescription } from "./ui/alert";
+import { Pessoa } from "@/types/api";
+import { ApiService } from "@/services/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   ArrowLeft,
   Calendar,
@@ -16,8 +16,11 @@ import {
   AlertCircle,
   Phone,
   MessageSquare,
+  Share2,
+  Copy,
+  Check,
 } from "lucide-react";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
 
 interface PessoaDetalhesProps {
   pessoaId: number;
@@ -37,6 +40,7 @@ export function PessoaDetalhes({
   const [pessoa, setPessoa] = useState<Pessoa | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const loadPessoa = async () => {
@@ -79,6 +83,36 @@ export function PessoaDetalhes({
       month: "long",
       year: "numeric",
     });
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Informações sobre ${pessoa?.nome}`,
+          text: `Veja as informações sobre ${pessoa?.nome} no sistema de pessoas desaparecidas.`,
+          url: url,
+        });
+      } catch (err) {
+        // Usuário cancelou ou erro no compartilhamento
+        console.log("Erro ao compartilhar:", err);
+      }
+    } else {
+      // Fallback para cópia
+      handleCopyLink();
+    }
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Erro ao copiar link:", err);
+    }
   };
 
   if (loading) {
@@ -154,6 +188,41 @@ export function PessoaDetalhes({
         Voltar para a listagem
       </Button>
 
+      {/* Status Banner */}
+      <div
+        className={`mb-8 p-4 rounded-xl border-2 ${
+          isLocalizada
+            ? "bg-gradient-to-r from-emerald-50 to-green-50 border-emerald-200"
+            : "bg-gradient-to-r from-red-50 to-rose-50 border-red-200"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-3 h-3 rounded-full ${
+              isLocalizada ? "bg-emerald-500" : "bg-red-500"
+            }`}
+          />
+          <div>
+            <h2
+              className={`text-lg font-bold ${
+                isLocalizada ? "text-emerald-800" : "text-red-800"
+              }`}
+            >
+              {isLocalizada ? "Pessoa Localizada" : "Pessoa Desaparecida"}
+            </h2>
+            <p
+              className={`text-sm ${
+                isLocalizada ? "text-emerald-600" : "text-red-600"
+              }`}
+            >
+              {isLocalizada
+                ? "Esta pessoa foi encontrada e está segura."
+                : "Esta pessoa ainda está desaparecida. Qualquer informação é valiosa."}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Coluna da Foto e Status */}
         <div className="lg:col-span-1">
@@ -179,11 +248,11 @@ export function PessoaDetalhes({
                     variant={isLocalizada ? "default" : "destructive"}
                     className={`${
                       isLocalizada
-                        ? "bg-green-600 hover:bg-green-700 text-white"
-                        : "bg-red-600 hover:bg-red-700 text-white"
-                    } shadow-lg text-sm px-3 py-1`}
+                        ? "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg border-0"
+                        : "bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white shadow-lg border-0"
+                    } text-sm px-4 py-2 font-bold tracking-wide backdrop-blur-sm`}
                   >
-                    {isLocalizada ? "PESSOA LOCALIZADA" : "PESSOA DESAPARECIDA"}
+                    {isLocalizada ? "✓ LOCALIZADA" : "⚠ DESAPARECIDA"}
                   </Badge>
                 </div>
               </div>
@@ -204,7 +273,7 @@ export function PessoaDetalhes({
                   </div>
                 </div>
 
-                <div className="pt-4 border-t">
+                <div className="pt-4 border-t space-y-3">
                   <Button
                     onClick={() => {
                       onEnviarInformacao(
@@ -219,7 +288,33 @@ export function PessoaDetalhes({
                     <MessageSquare className="w-4 h-4" />
                     Enviar Informação
                   </Button>
-                  <p className="text-xs text-muted-foreground mt-2 text-center">
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleShare}
+                      variant="outline"
+                      className="flex-1 flex items-center gap-2"
+                      size="sm"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      Compartilhar
+                    </Button>
+                    <Button
+                      onClick={handleCopyLink}
+                      variant="outline"
+                      className="flex-1 flex items-center gap-2"
+                      size="sm"
+                    >
+                      {copied ? (
+                        <Check className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                      {copied ? "Copiado!" : "Copiar Link"}
+                    </Button>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground text-center">
                     Ajude com informações que possam ser úteis
                   </p>
                 </div>

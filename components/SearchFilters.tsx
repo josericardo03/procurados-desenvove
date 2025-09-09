@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { SearchFilters as SearchFiltersType } from "../types/api";
-import { Input } from "./ui/input";
+import { SearchFilters as SearchFiltersType } from "@/types/api";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -8,9 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import { Search, X, Filter, Sparkles } from "lucide-react";
-import { Card, CardContent } from "./ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface SearchFiltersProps {
   filters: SearchFiltersType;

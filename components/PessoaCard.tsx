@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { Pessoa } from "../types/api";
-import { Card, CardContent } from "./ui/card";
-import { Badge } from "./ui/badge";
+import { Pessoa } from "@/types/api";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, User, Clock, Info } from "lucide-react";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
 
 interface PessoaCardProps {
   pessoa: Pessoa;

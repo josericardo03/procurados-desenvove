@@ -110,14 +110,14 @@ docker-compose.yml
 *.md
 docs/
 
-# Test files
-__tests__/
-*.test.js
-*.test.ts
-*.test.tsx
-*.spec.js
-*.spec.ts
-*.spec.tsx
+# Test files (commented out to avoid build issues)
+# __tests__/
+# *.test.js
+# *.test.ts
+# *.test.tsx
+# *.spec.js
+# *.spec.ts
+# *.spec.tsx
 
 # CI/CD
 .github/

@@ -1,10 +1,10 @@
 "use client";
 
 import { ReactNode, useState, useEffect } from "react";
-import { Toaster } from "./ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { Shield, Phone, Mail, MapPin, Home } from "lucide-react";
 import Link from "next/link";
-import { ApiService, ApiStatus } from "../services/api";
+import { ApiService, ApiStatus } from "@/services/api";
 
 interface RootShellProps {
   children: ReactNode;

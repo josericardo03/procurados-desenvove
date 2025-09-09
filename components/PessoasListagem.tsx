@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
-import { ApiResponse, SearchFilters as SearchFiltersType } from "../types/api";
-import { ApiService } from "../services/api";
-import { PessoaCard } from "./PessoaCard";
-import { SearchFilters } from "./SearchFilters";
-import { Pagination } from "./ui/pagination";
-import { Button } from "./ui/button";
-import { Card, CardContent } from "./ui/card";
-import { Skeleton } from "./ui/skeleton";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ApiResponse, SearchFilters as SearchFiltersType } from "@/types/api";
+import { ApiService } from "@/services/api";
+import { PessoaCard } from "@/components/PessoaCard";
+import { SearchFilters } from "@/components/SearchFilters";
+import { Pagination } from "@/components/ui/pagination";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, Users, TrendingUp, Clock, Search } from "lucide-react";
-import { Alert, AlertDescription } from "./ui/alert";
-import { TimeoutError, NetworkError, HttpError } from "../services/api";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { TimeoutError, NetworkError, HttpError } from "@/services/api";
 
 interface PessoasListagemProps {
   onPessoaClick: (id: number) => void;
@@ -20,27 +21,93 @@ export function PessoasListagem({
   onPessoaClick,
   onComoAjudar,
 }: PessoasListagemProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const [filters, setFilters] = useState<SearchFiltersType>({});
   const [totais, setTotais] = useState<{
     desaparecidas: number;
     localizadas: number;
   } | null>(null);
 
+  // Função para atualizar a URL com os parâmetros atuais
+  const updateURL = (
+    page: number,
+    size: number,
+    newFilters: SearchFiltersType
+  ) => {
+    const params = new URLSearchParams();
+
+    if (page > 0) params.set("page", page.toString());
+    if (size !== 10) params.set("size", size.toString());
+
+    if (newFilters.nome) params.set("nome", newFilters.nome);
+    if (newFilters.status && newFilters.status !== "todos")
+      params.set("status", newFilters.status);
+    if (newFilters.sexo && newFilters.sexo !== "todos")
+      params.set("sexo", newFilters.sexo);
+    if (newFilters.dataDesaparecimentoDe)
+      params.set("dataDe", newFilters.dataDesaparecimentoDe);
+    if (newFilters.dataDesaparecimentoAte)
+      params.set("dataAte", newFilters.dataDesaparecimentoAte);
+
+    const newURL = params.toString() ? `?${params.toString()}` : "/";
+    router.replace(newURL, { scroll: false });
+  };
+
+  // Função para carregar parâmetros da URL
+  const loadParamsFromURL = () => {
+    const page = parseInt(searchParams.get("page") || "0");
+    const size = parseInt(searchParams.get("size") || "10");
+    const nome = searchParams.get("nome") || undefined;
+    const status = searchParams.get("status") as
+      | "desaparecido"
+      | "localizado"
+      | "todos"
+      | null;
+    const sexo = searchParams.get("sexo") as
+      | "MASCULINO"
+      | "FEMININO"
+      | "todos"
+      | null;
+    const dataDe = searchParams.get("dataDe") || undefined;
+    const dataAte = searchParams.get("dataAte") || undefined;
+
+    const urlFilters: SearchFiltersType = {};
+    if (nome) urlFilters.nome = nome;
+    if (status && status !== "todos") urlFilters.status = status;
+    if (sexo && sexo !== "todos") urlFilters.sexo = sexo;
+    if (dataDe) urlFilters.dataDesaparecimentoDe = dataDe;
+    if (dataAte) urlFilters.dataDesaparecimentoAte = dataAte;
+
+    return { page, size, filters: urlFilters };
+  };
+
   const loadPessoas = async (
     page: number = 0,
-    newFilters?: SearchFiltersType
+    newFilters?: SearchFiltersType,
+    newPageSize?: number
   ) => {
     try {
       setLoading(true);
       setError(null);
       const filtersToUse = newFilters !== undefined ? newFilters : filters;
-      const response = await ApiService.getPessoas(page, 10, filtersToUse);
+      const sizeToUse = newPageSize !== undefined ? newPageSize : pageSize;
+      const response = await ApiService.getPessoas(
+        page,
+        sizeToUse,
+        filtersToUse
+      );
       setData(response);
       setCurrentPage(page);
+
+      // Atualizar URL
+      updateURL(page, sizeToUse, filtersToUse);
     } catch (err) {
       let message = "Ocorreu um erro inesperado. Tente novamente.";
       if (err instanceof TimeoutError)
@@ -58,16 +125,22 @@ export function PessoasListagem({
   };
 
   useEffect(() => {
-    loadPessoas(0);
+    // Carregar parâmetros da URL na inicialização
+    const { page, size, filters: urlFilters } = loadParamsFromURL();
+    setCurrentPage(page);
+    setPageSize(size);
+    setFilters(urlFilters);
+
+    loadPessoas(page, urlFilters, size);
     // carrega totais iniciais
-    ApiService.getTotais({})
+    ApiService.getTotais(urlFilters)
       .then(setTotais)
       .catch(() => setTotais(null));
   }, []);
 
   const handleFiltersChange = (newFilters: SearchFiltersType) => {
     setFilters(newFilters);
-    loadPessoas(0, newFilters);
+    loadPessoas(0, newFilters, pageSize);
     ApiService.getTotais(newFilters)
       .then(setTotais)
       .catch(() => setTotais(null));
@@ -76,12 +149,19 @@ export function PessoasListagem({
   const handleClearFilters = () => {
     const emptyFilters: SearchFiltersType = {};
     setFilters(emptyFilters);
-    loadPessoas(0, emptyFilters);
+    loadPessoas(0, emptyFilters, pageSize);
+    // Limpar URL
+    router.replace("/", { scroll: false });
   };
 
   const handlePageChange = (page: number) => {
-    loadPessoas(page);
+    loadPessoas(page, filters, pageSize);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    loadPessoas(0, filters, newPageSize);
   };
 
   const getStatistics = () => {
@@ -265,7 +345,9 @@ export function PessoasListagem({
                   <Pagination
                     currentPage={currentPage}
                     totalPages={data.totalPages}
+                    pageSize={pageSize}
                     onPageChange={handlePageChange}
+                    onPageSizeChange={handlePageSizeChange}
                   />
                 </div>
               </div>

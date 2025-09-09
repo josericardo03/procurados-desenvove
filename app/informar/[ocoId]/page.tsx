@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { FormularioInformacao } from "@/components/FormularioInformacao";
+import { FormularioInformacao } from "../../../components/FormularioInformacao";
 
 export default function Page() {
   const router = useRouter();

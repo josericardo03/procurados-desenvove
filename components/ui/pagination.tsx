@@ -1,17 +1,22 @@
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { Button } from './button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
+  pageSize: number;
   onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
   className?: string;
 }
 
 export function Pagination({ 
   currentPage, 
   totalPages, 
+  pageSize,
   onPageChange,
+  onPageSizeChange,
   className = ""
 }: PaginationProps) {
   const generatePageNumbers = () => {
@@ -62,7 +67,24 @@ export function Pagination({
   if (totalPages <= 1) return null;
 
   return (
-    <div className={`flex items-center justify-center space-x-2 ${className}`}>
+    <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${className}`}>
+      {/* Page Size Selector */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">Itens por página:</span>
+        <Select value={pageSize.toString()} onValueChange={(value) => onPageSizeChange(Number(value))}>
+          <SelectTrigger className="w-20">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="10">10</SelectItem>
+            <SelectItem value="20">20</SelectItem>
+            <SelectItem value="50">50</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-center space-x-2">
       {/* Previous Button */}
       <Button
         variant="outline"
@@ -117,6 +139,7 @@ export function Pagination({
         <span className="hidden sm:inline">Próxima</span>
         <ChevronRight className="w-4 h-4" />
       </Button>
+      </div>
     </div>
   );
 }

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "../components/ui/button";
+import { Alert, AlertDescription } from "../components/ui/alert";
 import { AlertCircle, RotateCcw } from "lucide-react";
-import { ErrorHandlerService } from "@/services/errorHandler";
+import { ErrorHandlerService } from "../services/errorHandler";
 
 export default function GlobalError({
   error,

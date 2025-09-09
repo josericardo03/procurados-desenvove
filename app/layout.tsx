@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "../styles/globals.css";
-import { RootShell } from "@/components/RootShell";
+import { RootShell } from "../components/RootShell";
 
 export const metadata: Metadata = {
   title: "Pessoas Desaparecidas - MT",
